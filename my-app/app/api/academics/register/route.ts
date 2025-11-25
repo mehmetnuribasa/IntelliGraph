@@ -120,8 +120,25 @@ export async function POST(req: Request) {
     
   } catch (error) {
       console.error('Error occurred:', error);
+      
+      // More specific error messages
+      if (error instanceof Error) {
+        if (error.message.includes('ServiceUnavailable') || error.message.includes('CONNECTION_FAILURE')) {
+          return NextResponse.json(
+            { message: 'Database connection failed. Please check if Neo4j is running.' },
+            { status: 503 }
+          );
+        }
+        if (error.message.includes('AuthenticationError')) {
+          return NextResponse.json(
+            { message: 'Database authentication failed. Please check Neo4j credentials.' },
+            { status: 503 }
+          );
+        }
+      }
+      
       return NextResponse.json(
-        { message: 'Server error, registration failed.' },
+        { message: 'Server error, registration failed.', error: error instanceof Error ? error.message : 'Unknown error' },
         { status: 500 }
       );
   } finally {
