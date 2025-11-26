@@ -41,6 +41,10 @@ export default function UploadProjectPage() {
     e.preventDefault();
     
     try {
+      // Debug: Log user data
+      console.log('Current user:', user);
+      console.log('Academic ID being sent:', user?.id);
+      
       const response = await fetch('/api/projects', {
         method: 'POST',
         headers: {
@@ -54,6 +58,16 @@ export default function UploadProjectPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('API Error:', errorData);
+        
+        // Show detailed error if available
+        if (errorData.errors) {
+          const errorMessages = Object.entries(errorData.errors)
+            .map(([field, messages]: [string, any]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
+            .join('\n');
+          throw new Error(`Validation errors:\n${errorMessages}`);
+        }
+        
         throw new Error(errorData.message || 'Project upload failed');
       }
 

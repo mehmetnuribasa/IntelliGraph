@@ -96,14 +96,14 @@ export async function POST(req: Request) {
     // The 'SET a += $optionalProps' query only adds fields that exist in the optionalProps object.
     const result = await session.run(
       `CREATE (a:Academic {
-          userId: $userId,
+          id: $userId,
           email: $email,
           name: $name,
           passwordHash: $passwordHash,
           createdAt: datetime($createdAt)
       }) 
       SET a += $optionalProps
-      RETURN a.userId, a.email, a.name, a.title, a.bio, a.createdAt`,
+      RETURN a.id, a.email, a.name, a.title, a.bio, a.createdAt`,
       {
         userId,
         email: email.toLowerCase(),

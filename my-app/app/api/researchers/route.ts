@@ -19,6 +19,7 @@ export async function GET() {
       WITH a, COUNT(p) as projectCount
       RETURN a {
         .id,
+        .userId,
         .name,
         .email,
         .institution,
@@ -31,7 +32,20 @@ export async function GET() {
       LIMIT 50
     `);
 
-    const researchers = result.records.map((record) => record.get('a'));
+    const researchers = result.records.map((record) => {
+      const researcher = record.get('a');
+      // Ensure we have an id field, fallback to userId or email as unique identifier
+      if (!researcher.id && researcher.userId) {
+        researcher.id = researcher.userId;
+      } else if (!researcher.id && !researcher.userId) {
+        researcher.id = researcher.email; // Use email as fallback unique identifier
+      }
+      // Convert Neo4j integer to JavaScript number
+      if (researcher.projectCount && typeof researcher.projectCount === 'object') {
+        researcher.projectCount = researcher.projectCount.toNumber ? researcher.projectCount.toNumber() : (researcher.projectCount.low || 0);
+      }
+      return researcher;
+    });
 
     return NextResponse.json(researchers, { status: 200 });
 

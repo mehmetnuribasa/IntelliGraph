@@ -70,8 +70,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const { user: userData } = await response.json();
       
+      console.log('Login successful, user data:', userData);
+      
       const newUser: User = {
-        id: userData.id,
+        id: userData.id || userData.userId, // Fallback to userId for backward compatibility
         email: userData.email,
         name: userData.name,
         role: userData.role,

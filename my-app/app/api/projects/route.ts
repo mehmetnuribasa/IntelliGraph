@@ -46,6 +46,14 @@ export async function POST(req: Request) {
       errors.academicId = ['Academic ID is required.'];
     }
 
+    // Debug logging
+    console.log('Project upload request:', {
+      title,
+      academicId,
+      hasTitle: !!title,
+      hasAcademicId: !!academicId
+    });
+
     // If the 'errors' object is not empty, return an error response
     if (Object.keys(errors).length > 0) {
       return NextResponse.json(
@@ -56,15 +64,15 @@ export async function POST(req: Request) {
 
     session = driver.session();
 
-    // Verify academic exists
+    // Verify academic exists (check both id and userId for backward compatibility)
     const academicResult = await session.run(
-      'MATCH (a:Academic {id: $academicId}) RETURN a',
+      'MATCH (a:Academic) WHERE a.id = $academicId OR a.userId = $academicId RETURN a',
       { academicId }
     );
 
     if (academicResult.records.length === 0) {
       return NextResponse.json(
-        { message: 'Academic not found.' },
+        { message: 'Academic not found. Please logout and login again.' },
         { status: 404 }
       );
     }
@@ -75,7 +83,7 @@ export async function POST(req: Request) {
 
     const result = await session.run(
       `
-      MATCH (a:Academic {id: $academicId})
+      MATCH (a:Academic) WHERE a.id = $academicId OR a.userId = $academicId
       CREATE (p:Project {
         id: $projectId,
         title: $title,
@@ -92,7 +100,7 @@ export async function POST(req: Request) {
         createdAt: $createdAt
       })
       CREATE (a)-[:LEADS]->(p)
-      RETURN p, a.name AS academicName, a.institution AS institution
+      RETURN p, a.name AS academicName, a.email AS academicEmail, a.institution AS institution
       `,
       {
         academicId,
@@ -116,6 +124,7 @@ export async function POST(req: Request) {
     const newProject = {
       ...projectRecord.get('p').properties,
       academicName: projectRecord.get('academicName'),
+      academicEmail: projectRecord.get('academicEmail'),
       institution: projectRecord.get('institution')
     };
 
@@ -157,7 +166,7 @@ export async function GET() {
     const result = await session.run(`
       MATCH (p:Project)
       OPTIONAL MATCH (a:Academic)-[:LEADS]->(p)
-      RETURN p, a.name AS academicName, a.institution AS institution
+      RETURN p, a.name AS academicName, a.email AS academicEmail, a.institution AS institution
       ORDER BY p.createdAt DESC
       LIMIT 50
     `);
@@ -165,6 +174,7 @@ export async function GET() {
     const projects = result.records.map((record) => ({
       ...record.get('p').properties,
       academicName: record.get('academicName'),
+      academicEmail: record.get('academicEmail'),
       institution: record.get('institution')
     }));
 

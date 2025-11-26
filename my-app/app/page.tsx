@@ -240,6 +240,7 @@ export default function Home() {
   }, []);
 
   const [researchers, setResearchers] = useState<any[]>([]);
+  const [selectedResearcher, setSelectedResearcher] = useState<any>(null);
 
   // Close user menu when clicking outside
   useEffect(() => {
@@ -404,55 +405,6 @@ export default function Home() {
               'Discover semantically related research projects, connect with relevant researchers, and visualize relationships between projects, publications, and sustainable development goals.'
             )}
           </p>
-          
-
-          
-          {/* Demo Login Buttons - for testing */}
-          {!user && (
-            <div className="mt-8 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
-              <p className="text-center text-sm text-yellow-800 dark:text-yellow-200 mb-4">
-                <strong>Demo Mode:</strong> Try the platform features with test accounts
-              </p>
-              <div className="flex justify-center space-x-3">
-                <button
-                  onClick={() => {
-                    // Simulate academic login
-                    const demoAcademic = {
-                      id: 'demo-academic',
-                      name: 'Dr. Jane Smith',
-                      email: 'jane.smith@university.edu',
-                      role: 'academic' as const,
-                      institution: 'Demo University'
-                    };
-                    // Directly set the user (bypassing actual authentication for demo)
-                    (window as any).demoLogin = demoAcademic;
-                    login('demo', 'demo', 'academic');
-                  }}
-                  className="bg-blue-500 text-white px-4 py-2 text-sm rounded-lg hover:bg-blue-600 transition-colors"
-                >
-                  Demo Academic Login
-                </button>
-                <button
-                  onClick={() => {
-                    // Simulate institution login
-                    const demoInstitution = {
-                      id: 'demo-institution',
-                      name: 'Research Foundation',
-                      email: 'contact@researchfund.org',
-                      role: 'institution' as const,
-                      institution: 'Demo Research Foundation'
-                    };
-                    // Directly set the user (bypassing actual authentication for demo)
-                    (window as any).demoLogin = demoInstitution;
-                    login('demo', 'demo', 'institution');
-                  }}
-                  className="bg-purple-500 text-white px-4 py-2 text-sm rounded-lg hover:bg-purple-600 transition-colors"
-                >
-                  Demo Institution Login
-                </button>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Search Bar */}
@@ -689,15 +641,19 @@ export default function Home() {
                             ))}
                           </div>
                         </div>
-                        <div className="flex space-x-2 border-t border-gray-200 dark:border-gray-700 pt-4">
+                        <div className="flex justify-end space-x-2 mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
                           <button
                             onClick={() => {
                               // TODO: Implement edit functionality
                               alert('Edit functionality will be implemented');
                             }}
-                            className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                            className="flex items-center space-x-1 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 px-3 py-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors text-sm font-medium"
+                            title="Edit Project"
                           >
-                            Edit Project
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            <span>Edit</span>
                           </button>
                           <button
                             onClick={() => {
@@ -706,9 +662,13 @@ export default function Home() {
                                 alert('Delete functionality will be implemented');
                               }
                             }}
-                            className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
+                            className="flex items-center space-x-1 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 px-3 py-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-sm font-medium"
+                            title="Delete Project"
                           >
-                            Delete Project
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            <span>Delete</span>
                           </button>
                         </div>
                       </div>
@@ -915,7 +875,7 @@ export default function Home() {
                   </div>
                 ) : researchers.length > 0 ? (
                   researchers.map((researcher: any) => (
-                    <div key={researcher.id} className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+                    <div key={researcher.id || researcher.userId || researcher.email} className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
                       <div className="flex justify-between items-start mb-3">
                         <div>
                           <h4 className="text-xl font-semibold text-gray-900 dark:text-white mb-1">
@@ -928,7 +888,7 @@ export default function Home() {
                           )}
                         </div>
                         <span className="bg-gray-100 text-gray-800 text-sm px-3 py-1 rounded-full">
-                          {researcher.projectCount || 0} Projects
+                          {typeof researcher.projectCount === 'number' ? researcher.projectCount : 0} Projects
                         </span>
                       </div>
                       
@@ -943,18 +903,18 @@ export default function Home() {
                       <div className="flex items-center justify-between">
                         <div className="flex space-x-6">
                           <span className="text-sm text-gray-600 dark:text-gray-300">
-                            <strong>{researcher.projectCount || 0}</strong> Research Projects
+                            <strong>{typeof researcher.projectCount === 'number' ? researcher.projectCount : 0}</strong> Research Projects
                           </span>
                           <span className="text-sm text-gray-600 dark:text-gray-300">
                             <strong>Member since:</strong> {new Date(researcher.createdAt).getFullYear()}
                           </span>
                         </div>
                         <div className="flex space-x-2">
-                          <button className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium">
+                          <button 
+                            onClick={() => setSelectedResearcher(researcher)}
+                            className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium"
+                          >
                             View Profile
-                          </button>
-                          <button className="text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 text-sm font-medium">
-                            Collaborate
                           </button>
                         </div>
                       </div>
@@ -1021,7 +981,7 @@ export default function Home() {
                             style={{ left: `${x}%`, top: `${y}%`, transform: 'translate(-50%, -50%)' }}
                             title={`${project.title} - ${project.academicName}`}
                           >
-                            {project.title.split(' ').slice(0, 2).map(word => word[0]).join('')}
+                            {project.title.split(' ').slice(0, 2).map((word: string) => word[0]).join('')}
                           </div>
                           {/* Project Label */}
                           <div 
@@ -1099,14 +1059,14 @@ export default function Home() {
                       const pos = positions[index] || { x: 30, y: 50 };
 
                       return (
-                        <div key={`researcher-${researcher.id}`}>
+                        <div key={`researcher-${researcher.id || researcher.userId || researcher.email}`}>
                           {/* Researcher Node */}
                           <div 
                             className="absolute w-8 h-8 bg-indigo-500 rounded-full flex items-center justify-center text-white text-xs font-semibold shadow-md hover:scale-110 transition-transform cursor-pointer"
                             style={{ left: `${pos.x}%`, top: `${pos.y}%`, transform: 'translate(-50%, -50%)' }}
                             title={`${researcher.name} - ${researcher.institution}`}
                           >
-                            {researcher.name.split(' ').map(word => word[0]).join('').substring(0, 2)}
+                            {researcher.name.split(' ').map((word: string) => word[0]).join('').substring(0, 2)}
                           </div>
                           {/* Researcher Label */}
                           <div 
@@ -1178,6 +1138,124 @@ export default function Home() {
         isOpen={showAccountSettings}
         onClose={() => setShowAccountSettings(false)}
       />
+
+      {/* Researcher Profile Modal */}
+      {selectedResearcher && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              {/* Header */}
+              <div className="flex justify-between items-start mb-6">
+                <div className="flex items-start space-x-4">
+                  <div className="w-16 h-16 bg-indigo-500 rounded-full flex items-center justify-center text-white text-2xl font-bold">
+                    {selectedResearcher.name.split(' ').map((word: string) => word[0]).join('').substring(0, 2)}
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
+                      {selectedResearcher.name}
+                    </h2>
+                    {selectedResearcher.title && (
+                      <p className="text-blue-600 dark:text-blue-400 font-medium mb-1">
+                        {selectedResearcher.title}
+                      </p>
+                    )}
+                    <p className="text-gray-600 dark:text-gray-300">
+                      {selectedResearcher.institution}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSelectedResearcher(null)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <span className="text-2xl">×</span>
+                </button>
+              </div>
+
+              {/* Contact Info */}
+              <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div className="flex items-center space-x-2 text-gray-700 dark:text-gray-300">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                  <a href={`mailto:${selectedResearcher.email}`} className="hover:text-blue-600 dark:hover:text-blue-400">
+                    {selectedResearcher.email}
+                  </a>
+                </div>
+              </div>
+
+              {/* Bio */}
+              {selectedResearcher.bio && (
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                    About
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300">
+                    {selectedResearcher.bio}
+                  </p>
+                </div>
+              )}
+
+              {/* Stats */}
+              <div className="mb-6 grid grid-cols-2 gap-4">
+                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                  <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                    {typeof selectedResearcher.projectCount === 'number' ? selectedResearcher.projectCount : 0}
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-300">Research Projects</div>
+                </div>
+                <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                  <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">
+                    {selectedResearcher.createdAt ? new Date(selectedResearcher.createdAt).getFullYear() : 'N/A'}
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-300">Member Since</div>
+                </div>
+              </div>
+
+              {/* Projects Section */}
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                  Research Projects
+                </h3>
+                <div className="space-y-2">
+                  {projects.filter(p => p.academicEmail === selectedResearcher.email).length > 0 ? (
+                    projects.filter(p => p.academicEmail === selectedResearcher.email).map((project) => (
+                      <div key={project.id} className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                        <h4 className="font-medium text-gray-900 dark:text-white mb-1">
+                          {project.title}
+                        </h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
+                          {project.description.substring(0, 100)}...
+                        </p>
+                        <div className="flex items-center space-x-3 text-xs text-gray-500 dark:text-gray-400">
+                          <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-2 py-1 rounded">
+                            {project.fieldOfStudy}
+                          </span>
+                          <span>{project.status}</span>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-gray-500 dark:text-gray-400 text-sm">No projects listed yet</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-center">
+                <button 
+                  onClick={() => {
+                    window.location.href = `mailto:${selectedResearcher.email}?subject=Research Inquiry`;
+                  }}
+                  className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                >
+                  Contact via Email
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
