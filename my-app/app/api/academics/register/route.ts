@@ -100,10 +100,11 @@ export async function POST(req: Request) {
           email: $email,
           name: $name,
           passwordHash: $passwordHash,
+          role: 'ACADEMIC',
           createdAt: datetime($createdAt)
       }) 
       SET a += $optionalProps
-      RETURN a.userId, a.email, a.name, a.title, a.bio, a.createdAt`,
+      RETURN a.userId, a.email, a.name, a.role, a.title, a.bio, a.createdAt`,
       {
         userId,
         email: email.toLowerCase(),
