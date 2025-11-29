@@ -5,8 +5,8 @@ import { compare } from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
 /**
- * @api {post} /api/auth/login (from nuri branch)
- * @desc Authenticates user & returns JWT tokens
+ * @api {post} /api/academics/login
+ * @desc Authenticates user & returns token
  * @body { "email": "...", "password": "..." }
  */
 
@@ -139,4 +139,3 @@ export async function POST(req: Request) {
         }
   }
 }
-

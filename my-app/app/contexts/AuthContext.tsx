@@ -52,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch('/api/academics/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
