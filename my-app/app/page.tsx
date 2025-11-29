@@ -19,33 +19,11 @@ export default function Home() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showAccountSettings, setShowAccountSettings] = useState(false);
 
-  // Fetch projects and funding calls on component mount
+  // Initialize with mock data (no backend connections)
   useEffect(() => {
-    const fetchData = async () => {
+    const initializeData = () => {
       try {
-        const [projectsRes, callsRes, researchersRes] = await Promise.all([
-          fetch('/api/projects'),
-          fetch('/api/funding-calls'),
-          fetch('/api/researchers')
-        ]);
-
-        if (projectsRes.ok) {
-          const projectsData = await projectsRes.json();
-          setProjects(projectsData);
-        }
-
-        if (callsRes.ok) {
-          const callsData = await callsRes.json();
-          setFundingCalls(callsData);
-        }
-
-        if (researchersRes.ok) {
-          const researchersData = await researchersRes.json();
-          setResearchers(researchersData);
-        }
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        // Keep mock data as fallback with comprehensive demo data
+        // Use mock data directly - no API calls
         setProjects([
           {
             id: 1,
@@ -236,7 +214,7 @@ export default function Home() {
       }
     };
 
-    fetchData();
+    initializeData();
   }, []);
 
   const [researchers, setResearchers] = useState<any[]>([]);
@@ -268,12 +246,29 @@ export default function Home() {
     
     setSearching(true);
     try {
-      const response = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}&type=all`);
-      if (response.ok) {
-        const results = await response.json();
-        setSearchResults(results);
-        setSelectedTab('search-results');
-      }
+      // Simple local search through mock data
+      const query = searchQuery.toLowerCase();
+      const matchedProjects = projects.filter(p => 
+        p.title.toLowerCase().includes(query) ||
+        p.description.toLowerCase().includes(query) ||
+        p.fieldOfStudy.toLowerCase().includes(query)
+      );
+      const matchedCalls = fundingCalls.filter(c =>
+        c.title.toLowerCase().includes(query) ||
+        c.description.toLowerCase().includes(query) ||
+        c.institutionName.toLowerCase().includes(query)
+      );
+      
+      const combined = [
+        ...matchedProjects.map((p: any) => ({ ...p, type: 'project' })),
+        ...matchedCalls.map((c: any) => ({ ...c, type: 'funding-call' }))
+      ];
+      
+      setSearchResults({
+        combined,
+        totalResults: combined.length
+      });
+      setSelectedTab('search-results');
     } catch (error) {
       console.error('Search error:', error);
     } finally {

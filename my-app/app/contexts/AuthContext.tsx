@@ -94,51 +94,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     
     try {
-      const requestData = {
-        name: name.trim(),
-        email: email.trim().toLowerCase(),
-        password,
-        title: '', // Optional field
-        bio: `${role} at ${institution}` // Optional field
-      };
-      
-      console.log('Sending registration data:', { ...requestData, password: '[HIDDEN]' });
-      
-      const response = await fetch('/api/academics/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestData),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        
-        console.error('Registration error response:', errorData);
-        
-        // If there are detailed validation errors, show them
-        if (errorData.errors) {
-          const errorMessages = Object.entries(errorData.errors)
-            .map(([field, messages]: [string, any]) => `${field}: ${messages.join(', ')}`)
-            .join('\n');
-          throw new Error(`Validation errors:\n${errorMessages}`);
-        }
-        
-        // Show detailed server error if available
-        const errorMessage = errorData.error ? 
-          `${errorData.message}\nDetails: ${errorData.error}` : 
-          errorData.message;
-          
-        throw new Error(errorMessage || 'Registration failed');
-      }
-
-      const userData = await response.json();
-      
+      // For now, just create a local user without backend registration
       const newUser: User = {
-        id: userData.id || Math.random().toString(36).substr(2, 9),
-        email,
-        name,
+        id: Math.random().toString(36).substr(2, 9),
+        email: email.trim().toLowerCase(),
+        name: name.trim(),
         role,
         institution
       };

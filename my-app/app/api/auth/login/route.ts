@@ -2,17 +2,16 @@ import { NextResponse } from 'next/server';
 import driver from '@/lib/neo4j';
 import { Session } from 'neo4j-driver';
 import { compare } from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 
 /**
- * @api {post} /api/auth/login
- * @desc Authenticates academic or institution user
- * @body {
- * "email": "user@uni.edu.tr",
- * "password": "userPassword123"
- * }
+ * @api {post} /api/auth/login (from nuri branch)
+ * @desc Authenticates user & returns JWT tokens
+ * @body { "email": "...", "password": "..." }
  */
 
-const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const ACCESS_TOKEN_SECRET = process.env.JWT_SECRET || 'access_secret';
+const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || 'refresh_secret';
 
 export async function POST(req: Request) {
   let session: Session | null = null;
@@ -21,115 +20,123 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { email, password } = body;
 
-    // Input Validation
-    if (!email || typeof email !== 'string' || !emailRegex.test(email)) {
+    if (!email || !password) {
       return NextResponse.json(
-        { message: 'Please enter a valid email address.' },
-        { status: 400 }
-      );
-    }
-
-    if (!password || typeof password !== 'string') {
-      return NextResponse.json(
-        { message: 'Password is required.' },
+        { message: 'Email and password are required.' },
         { status: 400 }
       );
     }
 
     session = driver.session();
 
-    // Check for Academic user first
-    const academicResult = await session.run(
-      'MATCH (a:Academic {email: $email}) RETURN a',
+    // Find User in Database
+    const result = await session.run(
+      `MATCH (a:Academic {email: $email}) 
+       RETURN a.userId AS userId, 
+              a.name AS name, 
+              a.email AS email, 
+              a.role AS role,
+              a.passwordHash AS passwordHash`,
       { email: email.toLowerCase() }
     );
 
-    if (academicResult.records.length > 0) {
-      const academic = academicResult.records[0].get('a').properties;
-      
-      // Verify password
-      const isValidPassword = await compare(password, academic.passwordHash);
-      
-      if (!isValidPassword) {
-        return NextResponse.json(
-          { message: 'Invalid email or password.' },
-          { status: 401 }
-        );
-      }
-
-      // Return user data (excluding password hash)
-      const { passwordHash, ...userdata } = academic;
-      return NextResponse.json({
-        user: {
-          ...userdata,
-          role: 'academic'
-        },
-        message: 'Login successful'
-      }, { status: 200 });
+    // If no user found
+    if (result.records.length === 0) {
+      return NextResponse.json(
+        { message: 'Invalid email or password.' },
+        { status: 401 } // 401 Unauthorized
+      );
     }
 
-    // Check for Institution user if academic not found
-    const institutionResult = await session.run(
-      'MATCH (i:Institution {email: $email}) RETURN i',
-      { email: email.toLowerCase() }
+    const userRecord = result.records[0];
+    const storedHash = userRecord.get('passwordHash');
+
+    // Password Verification
+    const passwordMatch = await compare(password, storedHash);
+
+    if (!passwordMatch) {
+      return NextResponse.json(
+        { message: 'Invalid email or password.' },
+        { status: 401 }
+      );
+    }
+
+    // Get user payload for token
+    const userPayload = {
+        userId: userRecord.get('userId'),
+        email: userRecord.get('email'),
+        role: userRecord.get('role') || 'ACADEMIC',
+    };
+
+    // Access Token
+    const accessToken = jwt.sign(
+      userPayload,
+      ACCESS_TOKEN_SECRET,
+      { expiresIn: '1m' } 
     );
 
-    if (institutionResult.records.length > 0) {
-      const institution = institutionResult.records[0].get('i').properties;
-      
-      // Verify password
-      const isValidPassword = await compare(password, institution.passwordHash);
-      
-      if (!isValidPassword) {
-        return NextResponse.json(
-          { message: 'Invalid email or password.' },
-          { status: 401 }
-        );
-      }
+    // Refresh Token
+    const refreshToken = jwt.sign(
+      userPayload,
+      REFRESH_TOKEN_SECRET,
+      { expiresIn: '3m' }  // TEMPORARILY (should 7 days)
+    );
 
-      // Return user data (excluding password hash)
-      const { passwordHash, ...userdata } = institution;
-      return NextResponse.json({
-        user: {
-          ...userdata,
-          role: 'institution'
-        },
-        message: 'Login successful'
-      }, { status: 200 });
-    }
+    // Store Refresh Token in Database
+    // Assuming a relationship between Academic and Session nodes
+    await session.run(
+        `MATCH (u:Academic {userId: $userId})
 
-    // User not found
+        // Firstly, remove old expired sessions
+        WITH u
+        OPTIONAL MATCH (u)-[:HAS_SESSION]->(oldS:Session)
+        WHERE oldS.expiresAt < datetime()
+        DETACH DELETE oldS
+
+        // Then, create new session. Merge to avoid duplicates
+        WITH u
+        MERGE (s:Session {token: $refreshToken})
+        ON CREATE SET 
+            s.createdAt = datetime(),
+            s.expiresAt = datetime() + duration('PT3M'), // TEMPORARILY (should be PT168H for 7 days)
+            s.userAgent = $userAgent
+        
+        // Link session to user
+        MERGE (u)-[:HAS_SESSION]->(s)
+        `,
+         {
+             userId: userPayload.userId,
+             refreshToken: refreshToken,
+             userAgent: req.headers.get('user-agent') || 'Unknown'
+         }
+    );
+
+    // Successful Response
     return NextResponse.json(
-      { message: 'Invalid email or password.' },
-      { status: 401 }
+      {
+        message: 'Login successful.',
+        accessToken,  // Frontend will keep this in memory (variable)
+        refreshToken, // Frontend will keep this in localStorage or HTTP-Only Cookie
+        user: {
+          userId: userRecord.get('userId'),
+          name: userRecord.get('name'),
+          email: userRecord.get('email'),
+          role: userRecord.get('role'),
+        },
+      },
+      { status: 200 }
     );
 
   } catch (error) {
-    console.error('Login error:', error);
-    
-    if (error instanceof Error) {
-      if (error.message.includes('ServiceUnavailable') || error.message.includes('CONNECTION_FAILURE')) {
+        console.error('Login error:', error);
         return NextResponse.json(
-          { message: 'Database connection failed. Please check if Neo4j is running.' },
-          { status: 503 }
+            { message: 'Server error, login failed.' },
+            { status: 500 }
         );
-      }
-      if (error.message.includes('AuthenticationError')) {
-        return NextResponse.json(
-          { message: 'Database authentication failed. Please check Neo4j credentials.' },
-          { status: 503 }
-        );
-      }
-    }
-
-    return NextResponse.json(
-      { message: 'Server error, login failed.', error: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
   } finally {
-    if (session) {
-      await session.close();
-    }
+        if (session) {
+            await session.close();
+        }
   }
 }
 
