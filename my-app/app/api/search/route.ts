@@ -39,11 +39,14 @@ export async function GET(req: Request) {
     // 3. Academic Name Search (Non-vector)
     const result = await session.run(
         `
-        // PROJECT SEARCH (Vector Similarity)
         CALL {
+            // PROJECT SEARCH (Vector Similarity)
             WITH $embeddingVector AS queryVec
             CALL db.index.vector.queryNodes('project_embeddings', 5, queryVec) // Top 5 most similar projects
             YIELD node AS p, score
+
+            WHERE score >= 0.60 // Minimum similarity threshold
+
             // Find the author as well
             MATCH (p)<-[:IS_AUTHOR_OF]-(a:Academic)
             RETURN 'Project' AS type, 
@@ -59,6 +62,9 @@ export async function GET(req: Request) {
             WITH $embeddingVector AS queryVec
             CALL db.index.vector.queryNodes('call_embeddings', 5, queryVec) // Top 5 most similar calls
             YIELD node AS c, score
+
+            WHERE score >= 0.60 // Minimum similarity threshold
+
             // Find the institution as well
             MATCH (c)<-[:OPENS_CALL]-(i:Institution)
             RETURN 'Call' AS type, 

@@ -11,7 +11,7 @@ const urlRegex = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$
  * @api {post} /api/admin/institutions
 * @desc Creates a new institution or updates an existing one
 * @body {
-*           "name": "Tech University",
+*           "institutionName": "Tech University",
 *           "type": "University",
 *           "city": "Tech City",
 *           "website": "https://www.techuniversity.edu"
@@ -40,14 +40,14 @@ export async function POST(req: Request) {
 
     // GET REQUEST BODY
     const body = await req.json();
-    const { name, type, city, website } = body;
+    const { institutionName, type, city, website } = body;
 
 
     // INPUT VALIDATION
     const errors: Record<string, string[]> = {};
 
-    if (!name || typeof name !== 'string' || name.length < 3) {
-        errors.name = ['Institution Name is required and must be at least 3 characters.'];
+    if (!institutionName || typeof institutionName !== 'string' || institutionName.length < 3) {
+        errors.institutionName = ['Institution Name is required and must be at least 3 characters.'];
     }
 
     if (!type || typeof type !== 'string' || type.length < 2) {
@@ -79,7 +79,7 @@ export async function POST(req: Request) {
 
     const result = await session.run(
       `
-      MERGE (i:Institution {name: $name})
+      MERGE (i:Institution {name: $institutionName})
       ON CREATE SET
         i.institutionId = randomUUID(),
         i.type = $type,
@@ -94,7 +94,7 @@ export async function POST(req: Request) {
       RETURN i
       `,
       {
-        name,
+        institutionName: institutionName,
         type: type || 'Research Center',
         city: city,
         website: website || null
