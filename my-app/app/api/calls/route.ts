@@ -12,6 +12,48 @@ const ACCESS_TOKEN_SECRET = process.env.JWT_SECRET || 'access_secret';
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY || '');
 const embeddingModel = genAI.getGenerativeModel({ model: "text-embedding-004" });
 
+
+/**
+ * @api {get} /api/calls
+ * @desc Retrieves a list of research calls along with their institution details
+ */
+export async function GET() {
+  let session: Session | null = null;
+  try {
+    session = driver.session();
+    const result = await session.run(
+      `
+      MATCH (c:Call)<-[:OPENS_CALL]-(i:Institution)
+      RETURN c.callId AS id, 
+             c.title AS title, 
+             c.description AS description, 
+             c.deadline AS deadline,
+             c.status AS status,
+             i.name AS institutionName
+      ORDER BY c.createdAt DESC
+      LIMIT 20
+      `
+    );
+
+    const calls = result.records.map(record => ({
+      id: record.get('id'),
+      title: record.get('title'),
+      description: record.get('description'),
+      deadline: record.get('deadline'),
+      status: record.get('status'),
+      institutionName: record.get('institutionName')
+    }));
+
+    return NextResponse.json(calls, { status: 200 });
+  } catch (error) {
+    return NextResponse.json({ message: 'Server error.' }, { status: 500 });
+  } finally {
+    if (session) await session.close();
+  }
+}
+
+
+
 /**
  * @api {post} /api/calls
  * @desc Creates a new research call (Only for FUNDING_MANAGER role)
