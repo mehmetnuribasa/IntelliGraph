@@ -1,21 +1,35 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import api from '@/lib/api'; // Axios instance'ımızı import ediyoruz
+import { useRouter } from 'next/navigation';
+import { jwtDecode } from "jwt-decode"; // Token çözümleme kütüphanesi
 
-interface User {
-  id: string;
+// Backend'deki User şemasıyla uyumlu tip tanımlaması
+export interface User {
+  userId: string;
   email: string;
   name: string;
-  role: 'academic' | 'institution';
-  institution: string;
+  role: string; // 'ACADEMIC', 'FUNDING_MANAGER', 'ADMIN'
+}
+
+// Token içeriğinin (Payload) tipi
+interface DecodedToken {
+  userId: string;
+  email: string;
+  name: string;
+  role: string;
+  exp: number; // Token bitiş süresi (Unix timestamp)
+  iat: number; // Token oluşturulma süresi
+  [key: string]: any; // Ekstra alanlar olabilir
 }
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string, role: 'academic' | 'institution') => Promise<void>;
-  register: (name: string, email: string, password: string, role: 'academic' | 'institution', institution: string) => Promise<void>;
-  logout: () => void;
   isLoading: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  register: (name: string, email: string, password: string, title?: string, bio?: string) => Promise<void>;
+  logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -23,99 +37,112 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
 
+  // 1. Sayfa Yüklendiğinde: Token'dan Kullanıcıyı Oku
   useEffect(() => {
-    // Check if user is stored in localStorage
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch (error) {
-        localStorage.removeItem('user');
-      }
-    }
-    setIsLoading(false);
-  }, []);
+    const initializeAuth = () => {
+      const accessToken = localStorage.getItem('accessToken');
 
-  const login = async (email: string, password: string, role: 'academic' | 'institution') => {
-    setIsLoading(true);
-    
-    try {
-      // Handle demo logins
-      if (email === 'demo' && password === 'demo') {
-        const demoUser = (window as any).demoLogin;
-        if (demoUser) {
-          setUser(demoUser);
-          localStorage.setItem('user', JSON.stringify(demoUser));
-          setIsLoading(false);
-          return;
+      if (accessToken) {
+        try {
+          // Token'ı çöz
+          const decoded: DecodedToken = jwtDecode(accessToken);
+          
+          // Süresi dolmuş mu kontrol et (Opsiyonel ama iyi pratiktir)
+          const currentTime = Date.now() / 1000;
+          if (decoded.exp < currentTime) {
+             // Süresi dolmuşsa çıkış yap
+             logout();
+             return;
+          }
+
+          // User state'ini token verisiyle doldur
+          setUser({
+            userId: decoded.userId,
+            email: decoded.email,
+            name: decoded.name, // Backend token'a 'name' eklediyse buradan gelir
+            role: decoded.role,
+          });
+
+        } catch (error) {
+          console.error("Token decode error:", error);
+          logout();
         }
       }
+      setIsLoading(false);
+    };
 
-      const response = await fetch('/api/academics/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: email.trim().toLowerCase(),
-          password
-        }),
+    initializeAuth();
+  }, []);
+
+  // 2. LOGIN İŞLEMİ
+  const login = async (email: string, password: string) => {
+    setIsLoading(true);
+    try {
+      // Backend API'ye istek at
+      const response = await api.post('/academics/login', {
+        email,
+        password
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Login failed');
-      }
+      const { accessToken, refreshToken } = response.data;
 
-      const { user: userData } = await response.json();
+      // Tokenları kaydet
+      localStorage.setItem('accessToken', accessToken);
+      localStorage.setItem('refreshToken', refreshToken);
       
-      console.log('Login successful, user data:', userData);
+      // Token'dan kullanıcı bilgisini anında çöz ve state'e at
+      const decoded: DecodedToken = jwtDecode(accessToken);
       
-      const newUser: User = {
-        id: userData.id || userData.userId, // Fallback to userId for backward compatibility
-        email: userData.email,
-        name: userData.name,
-        role: userData.role,
-        institution: userData.institution || userData.name
-      };
+      setUser({
+        userId: decoded.userId,
+        email: decoded.email,
+        name: decoded.name,
+        role: decoded.role
+      });
 
-      setUser(newUser);
-      localStorage.setItem('user', JSON.stringify(newUser));
-    } catch (error) {
-      console.error('Login error:', error);
+      // İsteğe bağlı: Yönlendirme
+      // router.push('/dashboard'); 
+
+    } catch (error: any) {
+      console.error('Login error:', error.response?.data?.message || error.message);
       throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
-  const register = async (name: string, email: string, password: string, role: 'academic' | 'institution', institution: string) => {
+  // 3. REGISTER İŞLEMİ
+  const register = async (name: string, email: string, password: string, title?: string, bio?: string) => {
     setIsLoading(true);
-    
     try {
-      // For now, just create a local user without backend registration
-      const newUser: User = {
-        id: Math.random().toString(36).substr(2, 9),
-        email: email.trim().toLowerCase(),
-        name: name.trim(),
-        role,
-        institution
-      };
-
-      setUser(newUser);
-      localStorage.setItem('user', JSON.stringify(newUser));
-    } catch (error) {
-      console.error('Registration error:', error);
+      await api.post('/academics/register', {
+        name,
+        email,
+        password,
+        title,
+        bio
+      });
+      
+      // Başarılı olursa login sayfasına yönlendirme veya otomatik giriş yapılabilir
+    } catch (error: any) {
+      console.error('Registration error:', error.response?.data?.message || error.message);
       throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
+  // 4. LOGOUT İŞLEMİ
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('user');
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('user'); // Eski yöntemden kalan çöp varsa temizle
+    
+    router.push('/');
+    router.refresh(); 
   };
 
   return (

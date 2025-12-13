@@ -1,276 +1,109 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Image from "next/image";
 import { useAuth } from './contexts/AuthContext';
 import LoginModal from './components/LoginModal';
 import AccountSettingsModal from './components/AccountSettingsModal';
+import api from '@/lib/api';
+import { useRouter, useSearchParams } from 'next/navigation';
+
+// Dinamik import (SSR hatasını önlemek için)
+import dynamic from 'next/dynamic';
+const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), { ssr: false });
 
 export default function Home() {
-  const { user, login, logout, register } = useAuth();
-  const [searchQuery, setSearchQuery] = useState('');
+  const { user, login, register, logout } = useAuth();
+
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // State Management
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
   const [selectedTab, setSelectedTab] = useState('projects');
+  
+  // Modals
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const [projects, setProjects] = useState<any[]>([]);
-  const [fundingCalls, setFundingCalls] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchResults, setSearchResults] = useState<any>(null);
-  const [searching, setSearching] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showAccountSettings, setShowAccountSettings] = useState(false);
 
-  // Initialize with mock data (no backend connections)
+  // Data States
+  const [projects, setProjects] = useState<any[]>([]);
+  const [fundingCalls, setFundingCalls] = useState<any[]>([]);
+  const [researchers, setResearchers] = useState<any[]>([]);
+  const [graphData, setGraphData] = useState({ nodes: [], links: [] });
+  
+  const [loading, setLoading] = useState(true);
+  const [searching, setSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<any>(null);
+  const [selectedResearcher, setSelectedResearcher] = useState<any>(null);
+
+  // DATA FETCHING (Backend Integration)
   useEffect(() => {
-    const initializeData = () => {
+    const fetchData = async () => {
+      setLoading(true);
       try {
-        // Use mock data directly - no API calls
-        setProjects([
-          {
-            id: 1,
-            title: "AI-Driven Climate Change Analysis",
-            academicName: "Dr. Ahmet Yılmaz",
-            academicEmail: "ahmet.yilmaz@gtu.edu.tr",
-            institution: "GTU Computer Engineering",
-            description: "Using advanced machine learning algorithms including deep neural networks and ensemble methods to analyze global climate patterns, predict future temperature changes, and assess the impact of human activities on climate systems. This research integrates satellite data, weather station records, and oceanographic measurements.",
-            fieldOfStudy: "Environmental Data Science",
-            startDate: "2024-01-15",
-            endDate: "2026-12-31",
-            budget: "450,000 TL",
-            collaborators: "Dr. Maria Santos (MIT), Prof. Chen Wei (Beijing University)",
-            keywords: ["machine learning", "climate modeling", "environmental monitoring", "data analytics"],
-            publications: ["Climate Prediction Using Deep Learning - Nature Climate Change 2024", "AI Methods in Environmental Science - Environmental Research 2024"],
-            status: "ongoing",
-            similarity: 92,
-            sdgGoals: ["Climate Action", "Life on Land", "Clean Water and Sanitation"],
-            createdAt: "2024-01-15T10:00:00Z"
-          },
-          {
-            id: 2,
-            title: "Smart City Infrastructure Optimization",
-            academicName: "Prof. Dr. Elena Kowalski",
-            academicEmail: "elena.kowalski@itu.edu.tr",
-            institution: "ITU Smart Systems Engineering",
-            description: "Developing IoT-based smart infrastructure systems for urban environments, focusing on traffic optimization, energy management, and citizen services. The project aims to create a comprehensive platform that integrates various city systems for improved efficiency and quality of life.",
-            fieldOfStudy: "Smart Systems and IoT",
-            startDate: "2023-09-01",
-            endDate: "2025-08-31",
-            budget: "680,000 TL",
-            collaborators: "Dr. James Wilson (Stanford), Dr. Lisa Chen (NUS Singapore)",
-            keywords: ["smart cities", "IoT", "urban planning", "optimization", "sustainability"],
-            publications: ["IoT Infrastructure for Smart Cities - IEEE Smart Cities 2023"],
-            status: "ongoing",
-            similarity: 88,
-            sdgGoals: ["Sustainable Cities and Communities", "Industry Innovation", "Clean Energy"],
-            createdAt: "2023-09-01T09:00:00Z"
-          },
-          {
-            id: 3,
-            title: "Blockchain-Based Healthcare Data Management",
-            academicName: "Dr. Mehmet Özkan",
-            academicEmail: "mehmet.ozkan@hacettepe.edu.tr",
-            institution: "Hacettepe University Medical Informatics",
-            description: "Creating a secure, decentralized healthcare data management system using blockchain technology to ensure patient privacy while enabling seamless data sharing between healthcare providers. The system will support electronic health records, medical imaging, and telemedicine applications.",
-            fieldOfStudy: "Medical Informatics and Cybersecurity",
-            startDate: "2024-03-01",
-            endDate: "2026-02-28",
-            budget: "520,000 TL",
-            collaborators: "Dr. Sarah Johnson (Johns Hopkins), Prof. Raj Patel (IIT Delhi)",
-            keywords: ["blockchain", "healthcare", "cybersecurity", "data management", "privacy"],
-            publications: ["Blockchain in Healthcare: A Systematic Review - Journal of Medical Internet Research 2024"],
-            status: "ongoing",
-            similarity: 85,
-            sdgGoals: ["Good Health and Well-being", "Industry Innovation", "Partnerships for the Goals"],
-            createdAt: "2024-03-01T11:30:00Z"
-          }
-        ]);
-        
-        setFundingCalls([
-          {
-            id: 1,
-            title: "TÜBİTAK 1001 - Scientific and Technological Research Projects Support Program",
-            institutionName: "TÜBİTAK",
-            institutionEmail: "support@tubitak.gov.tr",
-            description: "Supporting fundamental and applied research projects that contribute to the advancement of science and technology in Turkey. This program aims to foster innovation, encourage international collaboration, and develop human resources in science and technology fields.",
-            fundingAmount: "100,000 - 800,000 TL per project",
-            applicationDeadline: "2025-04-15",
-            eligibility: "Turkish universities, public research institutions, and qualified private R&D centers. Principal investigators must hold a PhD and be affiliated with eligible institutions.",
-            eligibilityCriteria: "PhD required, Turkish institution affiliation, previous research experience",
-            categories: ["Basic Research", "Applied Research", "Experimental Development"],
-            requirements: "Detailed project proposal, budget justification, CV of research team, ethics approval if applicable",
-            contactInfo: "1001@tubitak.gov.tr | +90 312 468 53 00",
-            website: "https://www.tubitak.gov.tr/tr/destekler/akademik/ulusal-destek-programlari/1001",
-            applicationProcess: "Submit through TÜBİTAK online application system (ARDEB-OFIS). Applications undergo peer review and evaluation by expert panels.",
-            evaluationCriteria: "Scientific excellence (40%), feasibility and methodology (30%), impact and relevance (20%), team qualifications (10%)",
-            status: "open",
-            sdgFocus: ["Quality Education", "Industry Innovation", "Climate Action", "Good Health and Well-being"],
-            createdAt: "2024-01-10T08:00:00Z"
-          },
-          {
-            id: 2,
-            title: "EU Horizon Europe - Digital Europe Programme",
-            institutionName: "EU Commission",
-            institutionEmail: "digital-europe@ec.europa.eu",
-            description: "Supporting digital transformation across Europe through strategic investments in supercomputing, artificial intelligence, cybersecurity, and digital skills. This program aims to strengthen Europe's digital sovereignty and competitiveness in the global digital economy.",
-            fundingAmount: "€2M - €50M per project",
-            applicationDeadline: "2025-06-20",
-            eligibility: "Legal entities established in EU Member States, Horizon Europe associated countries, or specific third countries. Consortium of at least 3 partners from different eligible countries required.",
-            eligibilityCriteria: "EU/Associated country entities, consortium requirement, legal entity validation",
-            categories: ["AI and Robotics", "Cybersecurity", "High Performance Computing", "Digital Skills"],
-            requirements: "Consortium agreement, detailed work plan, impact assessment, dissemination strategy, ethics self-assessment",
-            contactInfo: "DIGITAL-CALLS@ec.europa.eu | +32 2 299 11 11",
-            website: "https://digital-strategy.ec.europa.eu/en/activities/digital-programme",
-            applicationProcess: "Submit via EU Funding & Tenders Portal. Two-stage evaluation process with external expert assessment and consensus review.",
-            evaluationCriteria: "Excellence (30%), impact (30%), implementation quality and efficiency (40%)",
-            status: "open",
-            sdgFocus: ["Industry Innovation", "Quality Education", "Decent Work and Economic Growth", "Partnerships for the Goals"],
-            createdAt: "2024-02-01T10:00:00Z"
-          },
-          {
-            id: 3,
-            title: "BAP Research Grant - Innovative Technology Solutions",
-            institutionName: "ITU BAP Office",
-            institutionEmail: "bap@itu.edu.tr",
-            description: "Supporting innovative research projects by ITU faculty members and graduate students that address real-world technological challenges. Priority is given to interdisciplinary projects with commercial potential and social impact.",
-            fundingAmount: "50,000 - 200,000 TL per project",
-            applicationDeadline: "2025-03-30",
-            eligibility: "ITU faculty members, postdoctoral researchers, and PhD students. Projects must be conducted within ITU facilities with appropriate supervision.",
-            eligibilityCriteria: "ITU affiliation, academic supervision, institutional resources",
-            categories: ["Engineering Innovation", "Information Technology", "Sustainable Technology", "Biomedical Engineering"],
-            requirements: "Project proposal (max 20 pages), budget breakdown, supervisor approval, laboratory access confirmation",
-            contactInfo: "bap@itu.edu.tr | +90 212 285 38 01",
-            website: "https://bap.itu.edu.tr/",
-            applicationProcess: "Internal ITU application system. Faculty committee review followed by external evaluation for projects >100K TL.",
-            evaluationCriteria: "Innovation potential (25%), scientific merit (25%), feasibility (25%), expected impact (25%)",
-            status: "open",
-            sdgFocus: ["Industry Innovation", "Quality Education", "Sustainable Cities and Communities"],
-            createdAt: "2024-01-20T14:00:00Z"
-          }
+        // Parallel API calls
+        const [projectsRes, callsRes, academicsRes, graphRes] = await Promise.all([
+          api.get('/projects'),    // Projects
+          api.get('/calls'),       // Calls
+          api.get('/academics'),   // Academics
+          api.get('/graph/data')   // Graph Data
         ]);
 
-        setResearchers([
-          {
-            id: 1,
-            name: "Dr. Ahmet Yılmaz",
-            email: "ahmet.yilmaz@gtu.edu.tr",
-            institution: "Gebze Technical University",
-            title: "Associate Professor of Environmental Data Science",
-            bio: "Dr. Yılmaz specializes in applying machine learning and artificial intelligence to environmental monitoring and climate change research. He has over 10 years of experience in developing predictive models for climate systems and has published extensively in top-tier journals. His research combines computer science with environmental science to address global sustainability challenges.",
-            fieldOfStudy: "Environmental Data Science",
-            researchInterests: ["Machine Learning", "Climate Modeling", "Environmental Monitoring", "Data Analytics"],
-            achievements: ["Best Paper Award - ICML Environmental Applications 2023", "Young Researcher Award - Turkish Academy of Sciences 2022"],
-            projectCount: 3,
-            publicationCount: 25,
-            hIndex: 15,
-            createdAt: "2022-09-15T09:00:00Z"
-          },
-          {
-            id: 2,
-            name: "Prof. Dr. Elena Kowalski",
-            email: "elena.kowalski@itu.edu.tr",
-            institution: "Istanbul Technical University",
-            title: "Professor of Smart Systems Engineering",
-            bio: "Prof. Kowalski is a leading expert in smart city technologies and IoT systems. She has led multiple international projects on urban sustainability and has been instrumental in developing smart infrastructure solutions for major cities worldwide. Her interdisciplinary approach combines engineering, urban planning, and data science.",
-            fieldOfStudy: "Smart Systems and IoT",
-            researchInterests: ["Smart Cities", "IoT Systems", "Urban Analytics", "Sustainable Infrastructure"],
-            achievements: ["IEEE Fellow 2021", "Smart Cities Innovation Award 2023", "EU Marie Curie Fellowship 2019-2021"],
-            projectCount: 7,
-            publicationCount: 82,
-            hIndex: 28,
-            createdAt: "2020-02-10T11:00:00Z"
-          },
-          {
-            id: 3,
-            name: "Dr. Mehmet Özkan",
-            email: "mehmet.ozkan@hacettepe.edu.tr",
-            institution: "Hacettepe University",
-            title: "Assistant Professor of Medical Informatics",
-            bio: "Dr. Özkan focuses on the intersection of healthcare and technology, particularly in cybersecurity and blockchain applications for medical data management. His work aims to improve patient care through secure and efficient health information systems while maintaining privacy and regulatory compliance.",
-            fieldOfStudy: "Medical Informatics and Cybersecurity",
-            researchInterests: ["Blockchain Technology", "Healthcare Cybersecurity", "Medical Data Management", "Health Information Systems"],
-            achievements: ["Healthcare Innovation Award 2024", "HIMSS Research Grant Recipient 2023"],
-            projectCount: 2,
-            publicationCount: 18,
-            hIndex: 12,
-            createdAt: "2023-01-08T13:30:00Z"
-          },
-          {
-            id: 4,
-            name: "Dr. Sarah Chen",
-            email: "sarah.chen@metu.edu.tr",
-            institution: "Middle East Technical University",
-            title: "Associate Professor of Renewable Energy Systems",
-            bio: "Dr. Chen is an expert in renewable energy technologies with a focus on solar panel efficiency optimization and energy storage systems. Her research contributes to sustainable energy solutions and she actively collaborates with industry partners to translate research into practical applications.",
-            fieldOfStudy: "Renewable Energy Engineering",
-            researchInterests: ["Solar Energy", "Energy Storage", "Grid Integration", "Sustainable Technology"],
-            achievements: ["Renewable Energy Research Excellence Award 2023", "TUBITAK Career Development Grant 2021"],
-            projectCount: 4,
-            publicationCount: 35,
-            hIndex: 19,
-            createdAt: "2021-08-22T10:15:00Z"
-          }
-        ]);
+        setProjects(projectsRes.data);
+        setFundingCalls(callsRes.data);
+        setResearchers(academicsRes.data);
+        setGraphData(graphRes.data);
+
+      } catch (error) {
+        console.error('Error loading data:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    initializeData();
+    fetchData();
   }, []);
 
-  const [researchers, setResearchers] = useState<any[]>([]);
-  const [selectedResearcher, setSelectedResearcher] = useState<any>(null);
 
-  // Close user menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      if (showUserMenu && !target.closest('.user-menu-container')) {
-        setShowUserMenu(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showUserMenu]);
-
-  const handleLogin = async (email: string, password: string, role: 'academic' | 'institution') => {
-    await login(email, password, role);
+  // AUTH FUNCTIONS
+  const handleLogin = async (email: string, password: string) => {
+    try {
+      await login(email, password); // Call login from context
+      setShowLoginModal(false);
+    } catch (error) {
+      alert('Login failed. Please check your credentials.');
+    }
   };
 
-  const handleRegister = async (name: string, email: string, password: string, role: 'academic' | 'institution', institution: string) => {
-    await register(name, email, password, role, institution);
+  const handleRegister = async (name: string, email: string, password: string) => {
+    try {
+      await register(name, email, password); // Call register from context
+      setShowLoginModal(false);
+    } catch (error) {
+      alert('Registration failed. Please check your information.');
+    }
   };
 
+  
+  // SEARCH FUNCTION
   const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
+    if (!searchQuery.trim() || searchQuery.trim().length < 2) return;
     
+    router.push(`/?q=${encodeURIComponent(searchQuery)}`, { scroll: false });
     setSearching(true);
     try {
-      // Simple local search through mock data
-      const query = searchQuery.toLowerCase();
-      const matchedProjects = projects.filter(p => 
-        p.title.toLowerCase().includes(query) ||
-        p.description.toLowerCase().includes(query) ||
-        p.fieldOfStudy.toLowerCase().includes(query)
-      );
-      const matchedCalls = fundingCalls.filter(c =>
-        c.title.toLowerCase().includes(query) ||
-        c.description.toLowerCase().includes(query) ||
-        c.institutionName.toLowerCase().includes(query)
-      );
-      
-      const combined = [
-        ...matchedProjects.map((p: any) => ({ ...p, type: 'project' })),
-        ...matchedCalls.map((c: any) => ({ ...c, type: 'funding-call' }))
-      ];
+      const res = await api.get(`/search?q=${encodeURIComponent(searchQuery)}`);
       
       setSearchResults({
-        combined,
-        totalResults: combined.length
+        combined: res.data.results,
+        totalResults: res.data.results.length
       });
       setSelectedTab('search-results');
+      
     } catch (error) {
       console.error('Search error:', error);
+      alert('Search failed.');
     } finally {
       setSearching(false);
     }
@@ -280,6 +113,33 @@ export default function Home() {
     setSearchResults(null);
     setSearchQuery('');
     setSelectedTab('projects');
+  };
+
+  // Helper to format dates safely (handles Neo4j nanoseconds)
+  const formatDate = (dateString: any) => {
+    if (!dateString) return 'N/A';
+    try {
+      // Handle Neo4j object format (if returned as object)
+      if (typeof dateString === 'object' && dateString.year && dateString.month && dateString.day) {
+        const year = typeof dateString.year === 'object' ? dateString.year.low : dateString.year;
+        const month = typeof dateString.month === 'object' ? dateString.month.low : dateString.month;
+        const day = typeof dateString.day === 'object' ? dateString.day.low : dateString.day;
+        return new Date(year, month - 1, day).toLocaleDateString();
+      }
+
+      let date;
+      if (typeof dateString === 'string') {
+         // Truncate nanoseconds to milliseconds (more robust regex)
+         // Matches .123456... and keeps .123
+         const cleanDate = dateString.replace(/(\.\d{3})\d+/, '$1');
+         date = new Date(cleanDate);
+      } else {
+         date = new Date(dateString);
+      }
+      return isNaN(date.getTime()) ? 'N/A' : date.toLocaleDateString();
+    } catch (error) {
+      return 'Invalid Date';
+    }
   };
 
   return (
@@ -300,13 +160,13 @@ export default function Home() {
               {user && (
                 <>
                   {/* Role-based navigation for logged-in users */}
-                  {user.role === 'academic' && (
+                  {user.role === 'ACADEMIC' && (
                     <a href="/upload-project" className="text-gray-600 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400 font-medium">
                       Add Project
                     </a>
                   )}
                   
-                  {user.role === 'institution' && (
+                  {user.role === 'FUNDING_MANAGER' && (
                     <a href="/upload-call" className="text-gray-600 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400 font-medium">
                       Post Funding Call
                     </a>
@@ -316,7 +176,7 @@ export default function Home() {
                     onClick={() => setSelectedTab('my-content')}
                     className="text-gray-600 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400"
                   >
-                    My {user.role === 'academic' ? 'Projects' : 'Funding Calls'}
+                    My {user.role === 'ACADEMIC' ? 'Projects' : 'Funding Calls'}
                   </button>
                 </>
               )}
@@ -393,7 +253,7 @@ export default function Home() {
           </h2>
           <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
             {user ? (
-              user.role === 'academic' 
+              user.role === 'ACADEMIC' 
                 ? 'Manage your research projects, discover funding opportunities, and connect with other researchers.'
                 : 'Post funding calls, discover relevant research projects, and connect with academic researchers.'
             ) : (
@@ -415,7 +275,7 @@ export default function Home() {
             />
             <button 
               onClick={handleSearch}
-              disabled={searching || !searchQuery.trim()}
+              disabled={searching || searchQuery.trim().length < 2}
               className="absolute right-3 top-3 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {searching ? 'Searching...' : 'Search'}
@@ -431,9 +291,6 @@ export default function Home() {
               </button>
             </div>
           )}
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 text-center">
-            Powered by FAISS vector search & OpenAI embeddings
-          </p>
         </div>
 
         {/* Tabs */}
@@ -462,7 +319,7 @@ export default function Home() {
                     : 'text-gray-600 dark:text-gray-300 hover:text-orange-600'
                 }`}
               >
-                My {user.role === 'academic' ? 'Projects' : 'Funding Calls'}
+                My {user.role === 'ACADEMIC' ? 'Projects' : 'Funding Calls'}
               </button>
             )}
             
@@ -524,50 +381,51 @@ export default function Home() {
                       <div className="flex justify-between items-start mb-3">
                         <div>
                           <span className={`inline-block px-2 py-1 text-xs rounded-full mb-2 ${
-                            item.type === 'project' 
+                            item.type === 'Project' 
                               ? 'bg-blue-100 text-blue-800' 
-                              : 'bg-purple-100 text-purple-800'
+                              : item.type === 'Call'
+                              ? 'bg-purple-100 text-purple-800'
+                              : 'bg-indigo-100 text-indigo-800'
                           }`}>
-                            {item.type === 'project' ? 'Research Project' : 'Funding Call'}
+                            {item.type === 'Project' ? 'Research Project' : item.type === 'Call' ? 'Funding Call' : 'Researcher'}
                           </span>
                           <h4 className="text-xl font-semibold text-gray-900 dark:text-white">{item.title}</h4>
                         </div>
-                        <span className="bg-green-100 text-green-800 text-sm px-3 py-1 rounded-full">
-                          {item.status || 'Active'}
-                        </span>
+                        {item.type !== 'Academic' && (
+                          <span className="bg-green-100 text-green-800 text-sm px-3 py-1 rounded-full">
+                            {item.status || 'Active'}
+                          </span>
+                        )}
                       </div>
                       <p className="text-gray-600 dark:text-gray-300 mb-3">
-                        {item.description?.substring(0, 200)}...
+                        {item.description || 'No description available'}
                       </p>
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {item.type === 'project' ? (
+                            {item.type === 'Project' ? (
                               <>
-                                <strong>{item.academicName || 'Unknown Researcher'}</strong> • {item.institution || 'Unknown Institution'}
-                                <br />
-                                <span className="text-xs">Field: {item.fieldOfStudy}</span>
+                                <strong>{item.subtitle || 'Unknown Researcher'}</strong>
+                                {item.score && (
+                                  <span className="text-xs ml-2 text-gray-400">(Similarity: {(item.score * 100).toFixed(1)}%)</span>
+                                )}
+                              </>
+                            ) : item.type === 'Call' ? (
+                              <>
+                                <strong>{item.subtitle || 'Unknown Institution'}</strong>
+                                {item.score && (
+                                  <span className="text-xs ml-2 text-gray-400">(Similarity: {(item.score * 100).toFixed(1)}%)</span>
+                                )}
                               </>
                             ) : (
                               <>
-                                <strong>{item.institutionName || 'Unknown Institution'}</strong>
-                                <br />
-                                <span className="text-xs">Funding: {item.fundingAmount} • Deadline: {new Date(item.applicationDeadline).toLocaleDateString()}</span>
+                                <strong>{item.subtitle || 'Researcher'}</strong>
+                                {item.score && (
+                                  <span className="text-xs ml-2 text-gray-400">(Match)</span>
+                                )}
                               </>
                             )}
                           </p>
-                        </div>
-                        <div className="flex space-x-2">
-                          {item.sdgGoals && item.sdgGoals.map((goal: string) => (
-                            <span key={goal} className="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded">
-                              {goal}
-                            </span>
-                          ))}
-                          {item.sdgFocus && item.sdgFocus.map((goal: string) => (
-                            <span key={goal} className="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded">
-                              {goal}
-                            </span>
-                          ))}
                         </div>
                       </div>
                     </div>
@@ -584,9 +442,9 @@ export default function Home() {
               <div className="space-y-6">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-2xl font-semibold text-gray-900 dark:text-white">
-                    My {user.role === 'academic' ? 'Projects' : 'Funding Calls'}
+                    My {user.role === 'ACADEMIC' ? 'Projects' : 'Funding Calls'}
                   </h3>
-                  {user.role === 'academic' ? (
+                  {user.role === 'ACADEMIC' ? (
                     <a
                       href="/upload-project"
                       className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
@@ -603,37 +461,30 @@ export default function Home() {
                   )}
                 </div>
                 
-                {user.role === 'academic' ? (
-                  // Show user's projects
-                  projects.filter(project => project.academicEmail === user.email).length > 0 ? (
-                    projects.filter(project => project.academicEmail === user.email).map((project) => (
-                      <div key={project.id} className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+                {user.role === 'ACADEMIC' ? (
+                  // Show user's projects - need to match by userId from projects
+                  projects.filter(project => project.authorName === user.name).length > 0 ? (
+                    projects.filter(project => project.authorName === user.name).map((project) => (
+                      <div key={project.projectId || project.id} className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
                         <div className="flex justify-between items-start mb-3">
                           <h4 className="text-xl font-semibold text-gray-900 dark:text-white">{project.title}</h4>
                           <span className="bg-green-100 text-green-800 text-sm px-3 py-1 rounded-full">
-                            Active
+                            {project.status || 'Active'}
                           </span>
                         </div>
                         <p className="text-gray-600 dark:text-gray-300 mb-3">
-                          {project.description}
+                          {project.summary || project.description || 'No description available'}
                         </p>
                         <div className="flex items-center justify-between mb-4">
                           <div>
                             <p className="text-sm text-gray-500 dark:text-gray-400">
-                              <span className="font-medium">Field:</span> {project.fieldOfStudy}
+                              <span className="font-medium">Author:</span> {project.authorName || user.name}
                             </p>
-                            {project.collaborators && (
-                              <p className="text-sm text-gray-500 dark:text-gray-400">
-                                <span className="font-medium">Collaborators:</span> {project.collaborators}
+                            {project.createdAt && (
+                              <p className="text-xs text-gray-400 dark:text-gray-500">
+                                Created: {formatDate(project.createdAt)}
                               </p>
                             )}
-                          </div>
-                          <div className="flex space-x-2">
-                            {project.sdgGoals && project.sdgGoals.map((goal: string) => (
-                              <span key={goal} className="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded">
-                                {goal}
-                              </span>
-                            ))}
                           </div>
                         </div>
                         <div className="flex justify-end space-x-2 mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
@@ -681,36 +532,31 @@ export default function Home() {
                     </div>
                   )
                 ) : (
-                  // Show user's funding calls
-                  fundingCalls.filter(call => call.institutionEmail === user.email).length > 0 ? (
-                    fundingCalls.filter(call => call.institutionEmail === user.email).map((call) => (
+                  // Show user's funding calls - Note: API doesn't provide institutionEmail, showing all calls for now
+                  fundingCalls.length > 0 ? (
+                    fundingCalls.map((call) => (
                       <div key={call.id} className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
                         <div className="flex justify-between items-start mb-3">
                           <h4 className="text-xl font-semibold text-gray-900 dark:text-white">{call.title}</h4>
                           <span className="bg-purple-100 text-purple-800 text-sm px-3 py-1 rounded-full">
-                            Open
+                            {call.status || 'Open'}
                           </span>
                         </div>
                         <p className="text-gray-600 dark:text-gray-300 mb-3">
-                          {call.description}
+                          {call.description || 'No description available'}
                         </p>
-                        <div className="grid grid-cols-2 gap-4 text-sm text-gray-600 dark:text-gray-300">
+                        <div className="grid grid-cols-2 gap-4 text-sm text-gray-600 dark:text-gray-300 mb-4">
                           <div>
-                            <span className="font-medium">Funding Amount:</span> {call.fundingAmount}
-                          </div>
-                          <div>
-                            <span className="font-medium">Deadline:</span> {new Date(call.applicationDeadline).toLocaleDateString()}
+                            <span className="font-medium">Institution:</span> {call.institutionName || 'Unknown'}
                           </div>
                           <div>
-                            <span className="font-medium">Eligibility:</span> {call.eligibilityCriteria}
+                            <span className="font-medium">Status:</span> {call.status || 'Open'}
                           </div>
-                          <div className="flex space-x-2">
-                            {call.sdgFocus && call.sdgFocus.map((goal: string) => (
-                              <span key={goal} className="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded">
-                                {goal}
-                              </span>
-                            ))}
-                          </div>
+                          {call.deadline && (
+                            <div>
+                              <span className="font-medium">Deadline:</span> {formatDate(call.deadline)}
+                            </div>
+                          )}
                         </div>
                         <div className="flex space-x-2 border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
                           <button
@@ -763,29 +609,24 @@ export default function Home() {
                   </div>
                 ) : projects.length > 0 ? (
                   projects.map((project: any) => (
-                    <div key={project.id} className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+                    <div key={project.projectId || project.id} className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
                       <div className="flex justify-between items-start mb-3">
                         <h4 className="text-xl font-semibold text-gray-900 dark:text-white">{project.title}</h4>
                         <span className="bg-blue-100 text-blue-800 text-sm px-3 py-1 rounded-full">
                           {project.status || 'Active'}
                         </span>
                       </div>
-                      <p className="text-gray-600 dark:text-gray-300 mb-3">{project.description}</p>
+                      <p className="text-gray-600 dark:text-gray-300 mb-3">{project.summary || 'No summary available'}</p>
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm text-gray-500 dark:text-gray-400">
-                            <strong>{project.academicName || 'Unknown Researcher'}</strong> • {project.institution || 'Unknown Institution'}
+                            <strong>{project.authorName || 'Unknown Researcher'}</strong>
                           </p>
-                          <p className="text-xs text-gray-400 dark:text-gray-500">
-                            Field: {project.fieldOfStudy} • Created: {new Date(project.createdAt).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <div className="flex space-x-2">
-                          {project.sdgGoals && project.sdgGoals.map((goal: string) => (
-                            <span key={goal} className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
-                              {goal}
-                            </span>
-                          ))}
+                          {project.createdAt && (
+                            <p className="text-xs text-gray-400 dark:text-gray-500">
+                              Created: {formatDate(project.createdAt)}
+                            </p>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -816,38 +657,20 @@ export default function Home() {
                           <span className="bg-green-100 text-green-800 text-sm px-3 py-1 rounded-full">
                             {call.status || 'Active'}
                           </span>
-                          <span className="text-sm text-gray-500">
-                            Deadline: {new Date(call.applicationDeadline).toLocaleDateString()}
-                          </span>
+                          {call.deadline && (
+                            <span className="text-sm text-gray-500">
+                              Deadline: {formatDate(call.deadline)}
+                            </span>
+                          )}
                         </div>
                       </div>
-                      <p className="text-gray-600 dark:text-gray-300 mb-3">{call.description}</p>
+                      <p className="text-gray-600 dark:text-gray-300 mb-3">{call.description || 'No description available'}</p>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
                         <div>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
-                            <strong>Funding:</strong> {call.fundingAmount}
-                          </p>
                           <p className="text-sm text-gray-500 dark:text-gray-400">
                             <strong>Posted by:</strong> {call.institutionName || 'Unknown Institution'}
                           </p>
                         </div>
-                        <div>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
-                            <strong>Eligibility:</strong> {call.eligibility?.substring(0, 100)}...
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex space-x-2">
-                        {call.sdgFocus && call.sdgFocus.map((goal: string) => (
-                          <span key={goal} className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded">
-                            {goal}
-                          </span>
-                        ))}
-                        {call.categories && call.categories.slice(0, 3).map((category: string) => (
-                          <span key={category} className="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded">
-                            {category}
-                          </span>
-                        ))}
                       </div>
                     </div>
                   ))
@@ -870,7 +693,7 @@ export default function Home() {
                   </div>
                 ) : researchers.length > 0 ? (
                   researchers.map((researcher: any) => (
-                    <div key={researcher.id || researcher.userId || researcher.email} className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+                    <div key={researcher.id} className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
                       <div className="flex justify-between items-start mb-3">
                         <div>
                           <h4 className="text-xl font-semibold text-gray-900 dark:text-white mb-1">
@@ -887,7 +710,7 @@ export default function Home() {
                         </span>
                       </div>
                       
-                      <p className="text-gray-600 dark:text-gray-300 mb-2">{researcher.institution}</p>
+                      <p className="text-gray-600 dark:text-gray-300 mb-2">{researcher.institution || 'Independent Researcher'}</p>
                       
                       {researcher.bio && (
                         <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
@@ -900,14 +723,16 @@ export default function Home() {
                           <span className="text-sm text-gray-600 dark:text-gray-300">
                             <strong>{typeof researcher.projectCount === 'number' ? researcher.projectCount : 0}</strong> Research Projects
                           </span>
-                          <span className="text-sm text-gray-600 dark:text-gray-300">
-                            <strong>Member since:</strong> {new Date(researcher.createdAt).getFullYear()}
-                          </span>
+                          {researcher.createdAt && (
+                            <span className="text-sm text-gray-600 dark:text-gray-300">
+                              <strong>Member since:</strong> {formatDate(researcher.createdAt)}
+                            </span>
+                          )}
                         </div>
                         <div className="flex space-x-2">
                           <button 
                             onClick={() => setSelectedResearcher(researcher)}
-                            className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium"
+                            className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium px-3 py-1 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
                           >
                             View Profile
                           </button>
@@ -944,21 +769,12 @@ export default function Home() {
                       const x = 50 + radius * Math.cos((angle * Math.PI) / 180);
                       const y = 50 + radius * Math.sin((angle * Math.PI) / 180);
                       
-                      // Assign colors based on field of study
-                      const getColorByField = (field: string) => {
-                        const fieldColors: { [key: string]: string } = {
-                          'Environmental Data Science': 'bg-green-500',
-                          'Smart Systems and IoT': 'bg-purple-500',
-                          'Medical Informatics and Cybersecurity': 'bg-red-500',
-                          'Renewable Energy Engineering': 'bg-orange-500',
-                          'Computer Science': 'bg-blue-500',
-                          'Engineering': 'bg-indigo-500'
-                        };
-                        return fieldColors[field] || 'bg-gray-500';
-                      };
+                      // Assign colors based on index (since fieldOfStudy is not in API)
+                      const colors = ['bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-orange-500', 'bg-red-500', 'bg-indigo-500'];
+                      const colorClass = colors[index % colors.length] || 'bg-gray-500';
 
                       return (
-                        <div key={project.id}>
+                        <div key={project.projectId || project.id}>
                           {/* Connection Line */}
                           <div 
                             className="absolute w-0.5 bg-gray-300 dark:bg-gray-500 opacity-50"
@@ -972,9 +788,9 @@ export default function Home() {
                           />
                           {/* Project Node */}
                           <div 
-                            className={`absolute w-12 h-12 ${getColorByField(project.fieldOfStudy || 'Computer Science')} rounded-full flex items-center justify-center text-white text-xs font-semibold shadow-md hover:scale-110 transition-transform cursor-pointer`}
+                            className={`absolute w-12 h-12 ${colorClass} rounded-full flex items-center justify-center text-white text-xs font-semibold shadow-md hover:scale-110 transition-transform cursor-pointer`}
                             style={{ left: `${x}%`, top: `${y}%`, transform: 'translate(-50%, -50%)' }}
-                            title={`${project.title} - ${project.academicName}`}
+                            title={`${project.title} - ${project.authorName || 'Unknown'}`}
                           >
                             {project.title.split(' ').slice(0, 2).map((word: string) => word[0]).join('')}
                           </div>
@@ -1054,12 +870,12 @@ export default function Home() {
                       const pos = positions[index] || { x: 30, y: 50 };
 
                       return (
-                        <div key={`researcher-${researcher.id || researcher.userId || researcher.email}`}>
+                        <div key={`researcher-${researcher.id}`}>
                           {/* Researcher Node */}
                           <div 
                             className="absolute w-8 h-8 bg-indigo-500 rounded-full flex items-center justify-center text-white text-xs font-semibold shadow-md hover:scale-110 transition-transform cursor-pointer"
                             style={{ left: `${pos.x}%`, top: `${pos.y}%`, transform: 'translate(-50%, -50%)' }}
-                            title={`${researcher.name} - ${researcher.institution}`}
+                            title={`${researcher.name} - ${researcher.institution || 'Independent'}`}
                           >
                             {researcher.name.split(' ').map((word: string) => word[0]).join('').substring(0, 2)}
                           </div>
@@ -1168,16 +984,16 @@ export default function Home() {
               </div>
 
               {/* Contact Info */}
-              <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <div className="flex items-center space-x-2 text-gray-700 dark:text-gray-300">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                  <a href={`mailto:${selectedResearcher.email}`} className="hover:text-blue-600 dark:hover:text-blue-400">
-                    {selectedResearcher.email}
-                  </a>
+              {selectedResearcher.id && (
+                <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <div className="flex items-center space-x-2 text-gray-700 dark:text-gray-300">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    <span>Researcher ID: {selectedResearcher.id}</span>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Bio */}
               {selectedResearcher.bio && (
@@ -1213,20 +1029,22 @@ export default function Home() {
                   Research Projects
                 </h3>
                 <div className="space-y-2">
-                  {projects.filter(p => p.academicEmail === selectedResearcher.email).length > 0 ? (
-                    projects.filter(p => p.academicEmail === selectedResearcher.email).map((project) => (
-                      <div key={project.id} className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  {projects.filter(p => p.authorName === selectedResearcher.name).length > 0 ? (
+                    projects.filter(p => p.authorName === selectedResearcher.name).map((project) => (
+                      <div key={project.projectId || project.id} className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                         <h4 className="font-medium text-gray-900 dark:text-white mb-1">
                           {project.title}
                         </h4>
                         <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
-                          {project.description.substring(0, 100)}...
+                          {(project.summary || project.description || 'No description available').substring(0, 100)}...
                         </p>
                         <div className="flex items-center space-x-3 text-xs text-gray-500 dark:text-gray-400">
                           <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-2 py-1 rounded">
-                            {project.fieldOfStudy}
+                            {project.status || 'Active'}
                           </span>
-                          <span>{project.status}</span>
+                          {project.createdAt && (
+                            <span>Created: {formatDate(project.createdAt)}</span>
+                          )}
                         </div>
                       </div>
                     ))
@@ -1240,11 +1058,12 @@ export default function Home() {
               <div className="flex justify-center">
                 <button 
                   onClick={() => {
-                    window.location.href = `mailto:${selectedResearcher.email}?subject=Research Inquiry`;
+                    // Since email is not in API response, we can show a message or use researcher ID
+                    alert(`To contact ${selectedResearcher.name}, please use their researcher profile (ID: ${selectedResearcher.id})`);
                   }}
                   className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
                 >
-                  Contact via Email
+                  View Full Profile
                 </button>
               </div>
             </div>
@@ -1253,4 +1072,4 @@ export default function Home() {
       )}
     </div>
   );
-}
+            }

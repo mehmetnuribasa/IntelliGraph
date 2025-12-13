@@ -45,7 +45,7 @@ export async function GET(req: Request) {
             CALL db.index.vector.queryNodes('project_embeddings', 5, queryVec) // Top 5 most similar projects
             YIELD node AS p, score
 
-            WHERE score >= 0.60 // Minimum similarity threshold
+            WHERE score >= 0.70 // Minimum similarity threshold
 
             // Find the author as well
             MATCH (p)<-[:IS_AUTHOR_OF]-(a:Academic)
