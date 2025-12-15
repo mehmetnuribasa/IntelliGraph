@@ -125,16 +125,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   // 4. LOGOUT İŞLEMİ
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('accessToken');
-    
-    // Note: We can't delete HttpOnly cookie from client-side JS.
-    // Ideally, we should call a backend endpoint like /api/auth/logout to clear the cookie.
-    // For now, we just clear client state.
-    
-    router.push('/');
-    router.refresh(); 
+  const logout = async () => {
+    try {
+      // Call backend to clear cookie and remove session from DB
+      await api.post('/auth/logout');
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      // Clear client-side state regardless of backend success
+      setUser(null);
+      localStorage.removeItem('accessToken');
+      
+      router.push('/');
+      router.refresh();
+    }
   };
 
   return (

@@ -16,6 +16,7 @@ export async function GET() {
     const result = await session.run(
       `
       MATCH (a:Academic)
+      WHERE a.role <> 'ADMIN'
       // Find the institution the academic represents
       OPTIONAL MATCH (a)-[:REPRESENTS]->(i:Institution)
       // How many projects authored by the academic

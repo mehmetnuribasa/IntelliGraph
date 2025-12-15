@@ -1,17 +1,20 @@
 'use client';
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense, useRef } from 'react';
+// import { useState, useEffect } from 'react';
 import { useAuth } from './contexts/AuthContext';
 import LoginModal from './components/LoginModal';
 import AccountSettingsModal from './components/AccountSettingsModal';
 import api from '@/lib/api';
 import { useRouter, useSearchParams } from 'next/navigation';
+import dynamic from 'next/dynamic'; // prevent SSR for ForceGraph
 
-// Dinamik import (SSR hatasını önlemek için)
-import dynamic from 'next/dynamic';
-const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), { ssr: false });
 
-export default function Home() {
+function HomeContent() {
+  const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), { ssr: false });
+  
+  // Reference to ForceGraph component
+  const fgRef = useRef<any>(null);
+  
   const { user, login, register, logout } = useAuth();
 
   const router = useRouter();
@@ -748,192 +751,118 @@ export default function Home() {
               </div>
             )}
 
-            {selectedTab === 'visualization' && (
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-8 shadow-sm">
-                <h3 className="text-2xl font-semibold text-gray-900 dark:text-white mb-6">
-                  Project Relationship Graph
+          
+          {/* --- GRAPH VISUALIZATION TAB --- */}
+          {selectedTab === 'visualization' && (
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm h-[600px] flex flex-col">
+                <h3 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4 pl-4 pt-4">
+                  Project Network Graph
                 </h3>
-                <div className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-700 dark:to-gray-600 rounded-lg p-8 min-h-96 relative overflow-hidden">
-                  {/* Dynamic Network Visualization */}
-                  <div className="relative w-full h-full">
-                    {/* Central Node - IntelliGraph */}
-                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold shadow-lg z-10">
-                      IG
-                    </div>
-                    
-                    {/* Dynamic Project Nodes */}
-                    {projects.slice(0, 6).map((project, index) => {
-                      // Generate positions in a circle around the center
-                      const angle = (index * 360) / Math.min(projects.length, 6);
-                      const radius = 35; // Distance from center
-                      const x = 50 + radius * Math.cos((angle * Math.PI) / 180);
-                      const y = 50 + radius * Math.sin((angle * Math.PI) / 180);
-                      
-                      // Assign colors based on index (since fieldOfStudy is not in API)
-                      const colors = ['bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-orange-500', 'bg-red-500', 'bg-indigo-500'];
-                      const colorClass = colors[index % colors.length] || 'bg-gray-500';
+                
+                <div className="flex-1 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden relative bg-gray-50 dark:bg-gray-900">
+                   {graphData.nodes.length > 0 ? (
+                     <ForceGraph2D
+                        ref={fgRef}
+                        graphData={graphData}
+                        
+                        // NODE AND LABEL RENDERING
+                        nodeCanvasObject={(node: any, ctx, globalScale) => {
+                          const label = node.label;
+                          
+                          // Font size constant
+                          const fontSize = 4; 
+                          
+                          // Node radius proportional to value
+                          const radius = Math.max(node.val * 1.5, 8); 
 
-                      return (
-                        <div key={project.projectId || project.id}>
-                          {/* Connection Line */}
-                          <div 
-                            className="absolute w-0.5 bg-gray-300 dark:bg-gray-500 opacity-50"
-                            style={{
-                              left: '50%',
-                              top: '50%',
-                              transformOrigin: 'top',
-                              height: `${radius * 4}px`,
-                              transform: `rotate(${angle + 90}deg)`
-                            }}
-                          />
-                          {/* Project Node */}
-                          <div 
-                            className={`absolute w-12 h-12 ${colorClass} rounded-full flex items-center justify-center text-white text-xs font-semibold shadow-md hover:scale-110 transition-transform cursor-pointer`}
-                            style={{ left: `${x}%`, top: `${y}%`, transform: 'translate(-50%, -50%)' }}
-                            title={`${project.title} - ${project.authorName || 'Unknown'}`}
-                          >
-                            {project.title.split(' ').slice(0, 2).map((word: string) => word[0]).join('')}
-                          </div>
-                          {/* Project Label */}
-                          <div 
-                            className="absolute text-xs text-gray-600 dark:text-gray-300 font-medium max-w-20 text-center"
-                            style={{ 
-                              left: `${x}%`, 
-                              top: `${y + 8}%`, 
-                              transform: 'translateX(-50%)'
-                            }}
-                          >
-                            {project.title.length > 15 ? project.title.substring(0, 15) + '...' : project.title}
-                          </div>
-                        </div>
-                      );
-                    })}
+                          // Draw circle
+                          ctx.beginPath();
+                          ctx.arc(node.x, node.y, radius, 0, 2 * Math.PI, false);
+                          ctx.fillStyle = node.color;
+                          ctx.fill();
+                          
+                          // Draw circle border
+                          ctx.lineWidth = 0.5;
+                          ctx.strokeStyle = '#fff';
+                          ctx.stroke();
+                          
+                          // Draw text
+                          // PERFORMANCE TUNING: If we are too far away (globalScale < 1.5), do not draw the text at all.
+                          if (globalScale > 1.2) {
+                              ctx.font = `bold ${fontSize}px Sans-Serif`;
+                              ctx.textAlign = 'center';
+                              ctx.textBaseline = 'middle';
+                              ctx.fillStyle = '#1f2937';
+                              
+                              // shorten label if too long
+                              const displayLabel = label.length > 12 ? label.substring(0, 12) + '.' : label;
+                              
+                              ctx.fillText(displayLabel, node.x, node.y);
+                          }
+                        }}
+                        nodeLabel={(node: any) => node.label}
 
-                    {/* Dynamic Funding Call Nodes */}
-                    {fundingCalls.slice(0, 4).map((call, index) => {
-                      // Position funding calls in corners and sides
-                      const positions = [
-                        { x: 85, y: 25 }, // Top right
-                        { x: 15, y: 25 }, // Top left  
-                        { x: 85, y: 75 }, // Bottom right
-                        { x: 15, y: 75 }  // Bottom left
-                      ];
-                      const pos = positions[index] || { x: 50, y: 20 };
+                        // LINK RENDERING
+                        linkCanvasObject={(link: any, ctx, globalScale) => {
+                          const start = link.source;
+                          const end = link.target;
 
-                      return (
-                        <div key={`funding-${call.id}`}>
-                          {/* Connection Line to center */}
-                          <div 
-                            className="absolute w-0.5 bg-yellow-400 opacity-70"
-                            style={{
-                              left: '50%',
-                              top: '50%',
-                              transformOrigin: 'top',
-                              height: `${Math.sqrt(Math.pow(pos.x - 50, 2) + Math.pow(pos.y - 50, 2)) * 4}px`,
-                              transform: `rotate(${Math.atan2(pos.y - 50, pos.x - 50) * 180 / Math.PI + 90}deg)`
-                            }}
-                          />
-                          {/* Funding Call Node */}
-                          <div 
-                            className="absolute w-10 h-10 bg-yellow-500 flex items-center justify-center text-white text-xs font-semibold shadow-md hover:scale-110 transition-transform cursor-pointer"
-                            style={{ 
-                              left: `${pos.x}%`, 
-                              top: `${pos.y}%`, 
-                              transform: 'translate(-50%, -50%) rotate(45deg)',
-                            }}
-                            title={`${call.title} - ${call.institutionName}`}
-                          >
-                            <span style={{ transform: 'rotate(-45deg)' }}>₺</span>
-                          </div>
-                          {/* Funding Call Label */}
-                          <div 
-                            className="absolute text-xs text-gray-600 dark:text-gray-300 font-medium max-w-20 text-center"
-                            style={{ 
-                              left: `${pos.x}%`, 
-                              top: `${pos.y + 8}%`, 
-                              transform: 'translateX(-50%)'
-                            }}
-                          >
-                            {call.institutionName}
-                          </div>
-                        </div>
-                      );
-                    })}
+                          // line width and style
+                          ctx.lineWidth = 1; 
+                          ctx.strokeStyle = '#9ca3af';
+                          ctx.beginPath();
+                          ctx.moveTo(start.x, start.y);
+                          ctx.lineTo(end.x, end.y);
+                          ctx.stroke();
 
-                    {/* Dynamic Researcher Connections */}
-                    {researchers.slice(0, 3).map((researcher, index) => {
-                      const positions = [
-                        { x: 25, y: 50 }, // Left
-                        { x: 75, y: 50 }, // Right
-                        { x: 50, y: 85 }  // Bottom
-                      ];
-                      const pos = positions[index] || { x: 30, y: 50 };
+                          // Relationship label (Only visible when zoomed in closely)
+                          if (link.label && globalScale > 2) {
+                            const textPos = { x: start.x + (end.x - start.x) / 2, y: start.y + (end.y - start.y) / 2 };
+                            const fontSize = 3;
+                            
+                            ctx.font = `${fontSize}px Sans-Serif`;
+                            ctx.fillStyle = '#6b7280';
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+                            ctx.fillText(link.label, textPos.x, textPos.y);
+                          }
+                        }}
+                        // Arrow settings
+                        linkCanvasObjectMode={() => 'after'} 
+                        linkDirectionalArrowLength={3.5}
+                        linkDirectionalArrowRelPos={1}
 
-                      return (
-                        <div key={`researcher-${researcher.id}`}>
-                          {/* Researcher Node */}
-                          <div 
-                            className="absolute w-8 h-8 bg-indigo-500 rounded-full flex items-center justify-center text-white text-xs font-semibold shadow-md hover:scale-110 transition-transform cursor-pointer"
-                            style={{ left: `${pos.x}%`, top: `${pos.y}%`, transform: 'translate(-50%, -50%)' }}
-                            title={`${researcher.name} - ${researcher.institution || 'Independent'}`}
-                          >
-                            {researcher.name.split(' ').map((word: string) => word[0]).join('').substring(0, 2)}
-                          </div>
-                          {/* Researcher Label */}
-                          <div 
-                            className="absolute text-xs text-gray-600 dark:text-gray-300 font-medium max-w-16 text-center"
-                            style={{ 
-                              left: `${pos.x}%`, 
-                              top: `${pos.y + 6}%`, 
-                              transform: 'translateX(-50%)'
-                            }}
-                          >
-                            {researcher.name.split(' ')[1] || researcher.name}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                        // PHYSICS AND INTERACTION
+                        onEngineStop={() => fgRef.current.zoomToFit(400, 50)}
+                        cooldownTicks={100}
+                        d3VelocityDecay={0.3}
+                        
+                        onEngineTick={() => {
+                           if (fgRef.current) {
+                             fgRef.current.d3Force('charge').strength(-40); 
+                             fgRef.current.d3Force('link').distance(50);     
+                             fgRef.current.d3Force('center').strength(0.05);
+                           }
+                        }}
 
-                  {/* Dynamic Legend */}
-                  <div className="absolute bottom-4 left-4 bg-white dark:bg-gray-800 rounded-lg p-3 shadow-md">
-                    <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
-                      Live Data ({projects.length + fundingCalls.length + researchers.length} nodes)
-                    </h4>
-                    <div className="space-y-1">
-                      <div className="flex items-center space-x-2">
-                        <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
-                        <span className="text-xs text-gray-600 dark:text-gray-300">Platform Hub</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                        <span className="text-xs text-gray-600 dark:text-gray-300">{projects.length} Projects</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <div className="w-3 h-3 bg-yellow-500 transform rotate-45"></div>
-                        <span className="text-xs text-gray-600 dark:text-gray-300">{fundingCalls.length} Funding Calls</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <div className="w-3 h-3 bg-indigo-500 rounded-full"></div>
-                        <span className="text-xs text-gray-600 dark:text-gray-300">{researchers.length} Researchers</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Interaction Hints */}
-                  <div className="absolute top-4 right-4 bg-white dark:bg-gray-800 rounded-lg p-2 shadow-md">
-                    <p className="text-xs text-gray-600 dark:text-gray-300">
-                      💡 Hover nodes for details
-                    </p>
-                  </div>
+                        backgroundColor="rgba(0,0,0,0)" 
+                     />
+                   ) : (
+                     <div className="flex items-center justify-center h-full text-gray-500">
+                        {loading ? 'Loading Graph Data...' : 'No graph data available.'}
+                     </div>
+                   )}
+                   
+                   <div className="absolute bottom-4 left-4 bg-white/90 dark:bg-gray-800/90 p-3 rounded-lg shadow-lg text-xs backdrop-blur-sm z-10 border border-gray-200 dark:border-gray-700">
+                      <div className="font-bold mb-2 dark:text-white border-b pb-1 dark:border-gray-600">Legend</div>
+                      <div className="flex items-center gap-2 mb-1"><span className="w-3 h-3 rounded-full bg-[#a5b4fc]"></span> <span className="text-gray-700 dark:text-gray-300">Researcher</span></div>
+                      <div className="flex items-center gap-2 mb-1"><span className="w-3 h-3 rounded-full bg-[#22d3ee]"></span> <span className="text-gray-700 dark:text-gray-300">Project</span></div>
+                      <div className="flex items-center gap-2 mb-1"><span className="w-3 h-3 rounded-full bg-[#fcd34d]"></span> <span className="text-gray-700 dark:text-gray-300">Call</span></div>
+                      <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-[#a1887f]"></span> <span className="text-gray-700 dark:text-gray-300">Institution</span></div>
+                   </div>
                 </div>
-                <div className="mt-4 text-center">
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Real-time visualization • {projects.length} Projects • {fundingCalls.length} Funding Calls • {researchers.length} Researchers
-                  </p>
-                </div>
-              </div>
-            )}
+            </div>
+          )}
           </div>
         </div>
       </section>
@@ -1072,4 +1001,12 @@ export default function Home() {
       )}
     </div>
   );
-            }
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div className="flex justify-center items-center h-screen bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-400">Loading...</div>}>
+      <HomeContent />
+    </Suspense>
+  );
+}
