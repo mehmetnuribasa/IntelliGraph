@@ -65,6 +65,7 @@ export async function POST(req: Request) {
     const userPayload = {
         userId: userRecord.get('userId'),
         email: userRecord.get('email'),
+        name: userRecord.get('name'),
         role: userRecord.get('role') || 'ACADEMIC',
     };
 
@@ -112,11 +113,11 @@ export async function POST(req: Request) {
     );
 
     // Successful Response
-    return NextResponse.json(
+    const response = NextResponse.json(
       {
         message: 'Login successful.',
         accessToken,  // Frontend will keep this in memory (variable)
-        refreshToken, // Frontend will keep this in localStorage or HTTP-Only Cookie
+        // refreshToken is now sent via HttpOnly Cookie
         user: {
           userId: userRecord.get('userId'),
           name: userRecord.get('name'),
@@ -126,6 +127,19 @@ export async function POST(req: Request) {
       },
       { status: 200 }
     );
+
+    // Set Refresh Token as HttpOnly Cookie
+    response.cookies.set({
+      name: 'refreshToken',
+      value: refreshToken,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/',
+      maxAge: 7 * 24 * 60 * 60 // 7 days in seconds
+    });
+
+    return response;
 
   } catch (error) {
         console.error('Login error:', error);

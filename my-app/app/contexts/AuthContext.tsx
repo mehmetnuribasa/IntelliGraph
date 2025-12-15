@@ -1,11 +1,11 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import api from '@/lib/api'; // Axios instance'ımızı import ediyoruz
+import api from '@/lib/api';
+import { jwtDecode } from "jwt-decode";
 import { useRouter } from 'next/navigation';
-import { jwtDecode } from "jwt-decode"; // Token çözümleme kütüphanesi
 
-// Backend'deki User şemasıyla uyumlu tip tanımlaması
+// User Type from backend
 export interface User {
   userId: string;
   email: string;
@@ -13,15 +13,15 @@ export interface User {
   role: string; // 'ACADEMIC', 'FUNDING_MANAGER', 'ADMIN'
 }
 
-// Token içeriğinin (Payload) tipi
+// Decoded Token Interface
 interface DecodedToken {
   userId: string;
   email: string;
   name: string;
   role: string;
-  exp: number; // Token bitiş süresi (Unix timestamp)
-  iat: number; // Token oluşturulma süresi
-  [key: string]: any; // Ekstra alanlar olabilir
+  exp: number; // Token finish time
+  iat: number; // Token creation time
+  [key: string]: any; // Additional fields may exist
 }
 
 interface AuthContextType {
@@ -39,29 +39,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  // 1. Sayfa Yüklendiğinde: Token'dan Kullanıcıyı Oku
+  // Read token from localStorage on initial load
   useEffect(() => {
     const initializeAuth = () => {
       const accessToken = localStorage.getItem('accessToken');
 
       if (accessToken) {
         try {
-          // Token'ı çöz
+          // Decode token to get user info
           const decoded: DecodedToken = jwtDecode(accessToken);
           
-          // Süresi dolmuş mu kontrol et (Opsiyonel ama iyi pratiktir)
-          const currentTime = Date.now() / 1000;
-          if (decoded.exp < currentTime) {
-             // Süresi dolmuşsa çıkış yap
-             logout();
-             return;
-          }
-
-          // User state'ini token verisiyle doldur
+          // Fill user state
           setUser({
             userId: decoded.userId,
             email: decoded.email,
-            name: decoded.name, // Backend token'a 'name' eklediyse buradan gelir
+            name: decoded.name,
             role: decoded.role,
           });
 
@@ -76,23 +68,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initializeAuth();
   }, []);
 
-  // 2. LOGIN İŞLEMİ
+  // LOGIN PROCESS
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      // Backend API'ye istek at
       const response = await api.post('/academics/login', {
         email,
         password
       });
 
-      const { accessToken, refreshToken } = response.data;
+      const { accessToken } = response.data;
 
-      // Tokenları kaydet
+      // Save access token to localStorage (Refresh token is in HttpOnly Cookie)
       localStorage.setItem('accessToken', accessToken);
-      localStorage.setItem('refreshToken', refreshToken);
       
-      // Token'dan kullanıcı bilgisini anında çöz ve state'e at
+      // Decode token to get user info and set state
       const decoded: DecodedToken = jwtDecode(accessToken);
       
       setUser({
@@ -138,8 +128,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     setUser(null);
     localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('user'); // Eski yöntemden kalan çöp varsa temizle
+    
+    // Note: We can't delete HttpOnly cookie from client-side JS.
+    // Ideally, we should call a backend endpoint like /api/auth/logout to clear the cookie.
+    // For now, we just clear client state.
     
     router.push('/');
     router.refresh(); 

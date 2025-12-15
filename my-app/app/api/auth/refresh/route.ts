@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import driver from '@/lib/neo4j';
 import { Session } from 'neo4j-driver';
 import jwt from 'jsonwebtoken';
 
 /**
  * @api {post} /api/auth/refresh
- * @desc Validates the Refresh Token and issues a new Access Token.
- * @body { "refreshToken": "..." }
+ * @desc Validates the Refresh Token (from Cookie) and issues a new Access Token.
  */
 
 const ACCESS_TOKEN_SECRET = process.env.JWT_SECRET || 'access_secret';
@@ -16,14 +16,15 @@ export async function POST(req: Request) {
   let session: Session | null = null;
 
   try {
-    const body = await req.json();
-    const { refreshToken } = body;
+    // Read Refresh Token from HttpOnly Cookie
+    const cookieStore = await cookies();
+    const refreshToken = cookieStore.get('refreshToken')?.value;
 
     // Check Refresh Token
     if (!refreshToken) {
       return NextResponse.json(
         { message: 'Refresh Token is required.' },
-        { status: 400 }
+        { status: 401 }
       );
     }
 

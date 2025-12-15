@@ -39,17 +39,8 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const refreshToken = localStorage.getItem('refreshToken');
-        
-        // If no refresh token, redirect to login (Because this is a protected area)
-        if (!refreshToken) {
-            // Only redirect if trying to perform a protected action
-            // window.location.href = '/login'; 
-            return Promise.reject(error);
-        }
-
         // Token refresh request
-        const { data } = await axios.post('/api/auth/refresh', { refreshToken });
+        const { data } = await axios.post('/api/auth/refresh');
 
         // Save the new token
         localStorage.setItem('accessToken', data.accessToken);
@@ -61,8 +52,6 @@ api.interceptors.response.use(
       } catch (refreshError) {
         // If refresh fails, clean up
         localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('user');
         // Redirect user to login page
         // window.location.href = '/login'; 
         return Promise.reject(refreshError);

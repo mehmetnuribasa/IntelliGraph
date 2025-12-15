@@ -192,11 +192,11 @@ export default function Home() {
                   >
                     <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center">
                       <span className="text-white text-sm font-semibold">
-                        {user.name.charAt(0).toUpperCase()}
+                        {(user.name || user.email || '?').charAt(0).toUpperCase()}
                       </span>
                     </div>
                     <div className="text-left text-sm">
-                      <p className="font-medium">{user.name}</p>
+                      <p className="font-medium">{user.name || user.email}</p>
                       <p className="text-gray-500 dark:text-gray-400 capitalize">{user.role}</p>
                     </div>
                     <svg className={`w-4 h-4 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
