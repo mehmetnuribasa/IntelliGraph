@@ -1,21 +1,35 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import api from '@/lib/api';
+import { jwtDecode } from "jwt-decode";
+import { useRouter } from 'next/navigation';
 
-interface User {
-  id: string;
+// User Type from backend
+export interface User {
+  userId: string;
   email: string;
   name: string;
-  role: 'academic' | 'institution';
-  institution: string;
+  role: string; // 'ACADEMIC', 'FUNDING_MANAGER', 'ADMIN'
+}
+
+// Decoded Token Interface
+interface DecodedToken {
+  userId: string;
+  email: string;
+  name: string;
+  role: string;
+  exp: number; // Token finish time
+  iat: number; // Token creation time
+  [key: string]: any; // Additional fields may exist
 }
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string, role: 'academic' | 'institution') => Promise<void>;
-  register: (name: string, email: string, password: string, role: 'academic' | 'institution', institution: string) => Promise<void>;
-  logout: () => void;
   isLoading: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  register: (name: string, email: string, password: string, title?: string, bio?: string) => Promise<void>;
+  logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -23,99 +37,108 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
 
+  // Read token from localStorage on initial load
   useEffect(() => {
-    // Check if user is stored in localStorage
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch (error) {
-        localStorage.removeItem('user');
-      }
-    }
-    setIsLoading(false);
-  }, []);
+    const initializeAuth = () => {
+      const accessToken = localStorage.getItem('accessToken');
 
-  const login = async (email: string, password: string, role: 'academic' | 'institution') => {
-    setIsLoading(true);
-    
-    try {
-      // Handle demo logins
-      if (email === 'demo' && password === 'demo') {
-        const demoUser = (window as any).demoLogin;
-        if (demoUser) {
-          setUser(demoUser);
-          localStorage.setItem('user', JSON.stringify(demoUser));
-          setIsLoading(false);
-          return;
+      if (accessToken) {
+        try {
+          // Decode token to get user info
+          const decoded: DecodedToken = jwtDecode(accessToken);
+          
+          // Fill user state
+          setUser({
+            userId: decoded.userId,
+            email: decoded.email,
+            name: decoded.name,
+            role: decoded.role,
+          });
+
+        } catch (error) {
+          console.error("Token decode error:", error);
+          logout();
         }
       }
+      setIsLoading(false);
+    };
 
-      const response = await fetch('/api/academics/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: email.trim().toLowerCase(),
-          password
-        }),
+    initializeAuth();
+  }, []);
+
+  // LOGIN PROCESS
+  const login = async (email: string, password: string) => {
+    setIsLoading(true);
+    try {
+      const response = await api.post('/academics/login', {
+        email,
+        password
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Login failed');
-      }
+      const { accessToken } = response.data;
 
-      const { user: userData } = await response.json();
+      // Save access token to localStorage (Refresh token is in HttpOnly Cookie)
+      localStorage.setItem('accessToken', accessToken);
       
-      console.log('Login successful, user data:', userData);
+      // Decode token to get user info and set state
+      const decoded: DecodedToken = jwtDecode(accessToken);
       
-      const newUser: User = {
-        id: userData.id || userData.userId, // Fallback to userId for backward compatibility
-        email: userData.email,
-        name: userData.name,
-        role: userData.role,
-        institution: userData.institution || userData.name
-      };
+      setUser({
+        userId: decoded.userId,
+        email: decoded.email,
+        name: decoded.name,
+        role: decoded.role
+      });
 
-      setUser(newUser);
-      localStorage.setItem('user', JSON.stringify(newUser));
-    } catch (error) {
-      console.error('Login error:', error);
+      // İsteğe bağlı: Yönlendirme
+      // router.push('/dashboard'); 
+
+    } catch (error: any) {
+      console.error('Login error:', error.response?.data?.message || error.message);
       throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
-  const register = async (name: string, email: string, password: string, role: 'academic' | 'institution', institution: string) => {
+  // 3. REGISTER İŞLEMİ
+  const register = async (name: string, email: string, password: string, title?: string, bio?: string) => {
     setIsLoading(true);
-    
     try {
-      // For now, just create a local user without backend registration
-      const newUser: User = {
-        id: Math.random().toString(36).substr(2, 9),
-        email: email.trim().toLowerCase(),
-        name: name.trim(),
-        role,
-        institution
-      };
-
-      setUser(newUser);
-      localStorage.setItem('user', JSON.stringify(newUser));
-    } catch (error) {
-      console.error('Registration error:', error);
+      await api.post('/academics/register', {
+        name,
+        email,
+        password,
+        title,
+        bio
+      });
+      
+      // Başarılı olursa login sayfasına yönlendirme veya otomatik giriş yapılabilir
+    } catch (error: any) {
+      console.error('Registration error:', error.response?.data?.message || error.message);
       throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('user');
+  // 4. LOGOUT İŞLEMİ
+  const logout = async () => {
+    try {
+      // Call backend to clear cookie and remove session from DB
+      await api.post('/auth/logout');
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      // Clear client-side state regardless of backend success
+      setUser(null);
+      localStorage.removeItem('accessToken');
+      
+      router.push('/');
+      router.refresh();
+    }
   };
 
   return (
