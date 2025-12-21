@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import api from '@/lib/api';
 
 interface AccountSettingsModalProps {
   isOpen: boolean;
@@ -18,8 +19,17 @@ export default function AccountSettingsModal({ isOpen, onClose }: AccountSetting
   const [profileForm, setProfileForm] = useState({
     name: user?.name || '',
     email: user?.email || '',
-    institution: user?.institution || '',
   });
+
+  // Update form when user changes
+  useEffect(() => {
+    if (user) {
+      setProfileForm({
+        name: user.name || '',
+        email: user.email || '',
+      });
+    }
+  }, [user]);
 
   // Password form state
   const [passwordForm, setPasswordForm] = useState({
@@ -27,10 +37,6 @@ export default function AccountSettingsModal({ isOpen, onClose }: AccountSetting
     newPassword: '',
     confirmPassword: '',
   });
-
-  // Forgot password state
-  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
-  const [showForgotPassword, setShowForgotPassword] = useState(false);
 
   if (!isOpen || !user) return null;
 
@@ -40,11 +46,29 @@ export default function AccountSettingsModal({ isOpen, onClose }: AccountSetting
     setMessage({ type: '', text: '' });
 
     try {
-      // TODO: Implement profile update API call
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+      await api.put('/academics/profile', {
+        name: profileForm.name,
+        email: profileForm.email,
+      });
+
       setMessage({ type: 'success', text: 'Profile updated successfully!' });
-    } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to update profile. Please try again.' });
+      
+      // Note: User will need to refresh/login again to see updated info in token
+      
+    } catch (error: any) {
+      console.error('Profile update error:', error);
+      
+      if (error.response?.data?.errors) {
+        const errorMessages = Object.entries(error.response.data.errors)
+          .map(([field, messages]: [string, any]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
+          .join('\n');
+        setMessage({ type: 'error', text: `Validation errors:\n${errorMessages}` });
+      } else {
+        setMessage({ 
+          type: 'error', 
+          text: error.response?.data?.message || 'Failed to update profile. Please try again.' 
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -67,46 +91,71 @@ export default function AccountSettingsModal({ isOpen, onClose }: AccountSetting
       return;
     }
 
+    // Password complexity check
+    const complexityRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[\W_]).+$/;
+    if (!complexityRegex.test(passwordForm.newPassword)) {
+      setMessage({ 
+        type: 'error', 
+        text: 'Password must contain at least one uppercase letter, one lowercase letter, and one special character.' 
+      });
+      setLoading(false);
+      return;
+    }
+
     try {
-      // TODO: Implement password change API call
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+      await api.put('/academics/password', {
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword,
+      });
+
       setMessage({ type: 'success', text: 'Password changed successfully!' });
       setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
-    } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to change password. Please check your current password.' });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleForgotPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setMessage({ type: '', text: '' });
-
-    try {
-      // TODO: Implement forgot password API call
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
-      setMessage({ type: 'success', text: 'Password reset email sent! Check your inbox.' });
-      setForgotPasswordEmail('');
-      setShowForgotPassword(false);
-    } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to send reset email. Please try again.' });
+    } catch (error: any) {
+      console.error('Password change error:', error);
+      
+      if (error.response?.data?.errors) {
+        const errorMessages = Object.entries(error.response.data.errors)
+          .map(([field, messages]: [string, any]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
+          .join('\n');
+        setMessage({ type: 'error', text: `Validation errors:\n${errorMessages}` });
+      } else {
+        setMessage({ 
+          type: 'error', 
+          text: error.response?.data?.message || 'Failed to change password. Please check your current password.' 
+        });
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const handleDeleteAccount = async () => {
-    if (window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+    const confirmMessage = 'Are you sure you want to delete your account? This action cannot be undone. All your data will be permanently deleted.';
+    
+    if (window.confirm(confirmMessage)) {
+      // Double confirmation
+      if (!window.confirm('This is your last chance. Are you absolutely sure?')) {
+        return;
+      }
+
       setLoading(true);
+      setMessage({ type: '', text: '' });
+      
       try {
-        // TODO: Implement account deletion API call
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
-        logout();
-        onClose();
-      } catch (error) {
-        setMessage({ type: 'error', text: 'Failed to delete account. Please try again.' });
+        await api.delete('/academics/account');
+        setMessage({ type: 'success', text: 'Account deleted successfully.' });
+        
+        // Logout and close modal after a short delay
+        setTimeout(() => {
+          logout();
+          onClose();
+        }, 1000);
+      } catch (error: any) {
+        console.error('Account deletion error:', error);
+        setMessage({ 
+          type: 'error', 
+          text: error.response?.data?.message || 'Failed to delete account. Please try again.' 
+        });
       } finally {
         setLoading(false);
       }
@@ -181,21 +230,22 @@ export default function AccountSettingsModal({ isOpen, onClose }: AccountSetting
             <form onSubmit={handleProfileUpdate} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  {user?.role === 'academic' ? 'Full Name' : 'Organization Name'}
+                  Full Name *
                 </label>
                 <input
                   type="text"
                   value={profileForm.name}
                   onChange={(e) => setProfileForm({...profileForm, name: e.target.value})}
-                  placeholder={user?.role === 'academic' ? 'e.g., Dr. John Smith' : 'e.g., TÜBİTAK, ITU BAP Office'}
+                  placeholder="e.g., Dr. John Smith"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   required
+                  minLength={2}
                 />
               </div>
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Email Address
+                  Email Address *
                 </label>
                 <input
                   type="email"
@@ -208,24 +258,14 @@ export default function AccountSettingsModal({ isOpen, onClose }: AccountSetting
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Institution
-                </label>
-                <input
-                  type="text"
-                  value={profileForm.institution}
-                  onChange={(e) => setProfileForm({...profileForm, institution: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Account Type
                 </label>
                 <div className="px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg">
-                  <span className="text-gray-600 dark:text-gray-300 capitalize">{user.role}</span>
+                  <span className="text-gray-600 dark:text-gray-300">{user.role}</span>
                 </div>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Note: After updating your profile, you may need to log out and log back in to see changes reflected.
+                </p>
               </div>
 
               <button
@@ -294,55 +334,6 @@ export default function AccountSettingsModal({ isOpen, onClose }: AccountSetting
                   {loading ? 'Changing...' : 'Change Password'}
                 </button>
               </form>
-
-              {/* Forgot Password Section */}
-              <div className="border-t pt-6">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Forgot Password?</h3>
-                <p className="text-gray-600 dark:text-gray-300 mb-4">
-                  If you've forgotten your current password, you can request a password reset email.
-                </p>
-                
-                {!showForgotPassword ? (
-                  <button
-                    onClick={() => setShowForgotPassword(true)}
-                    className="text-blue-600 hover:text-blue-700 font-medium"
-                  >
-                    Send Password Reset Email
-                  </button>
-                ) : (
-                  <form onSubmit={handleForgotPassword} className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Email Address
-                      </label>
-                      <input
-                        type="email"
-                        value={forgotPasswordEmail}
-                        onChange={(e) => setForgotPasswordEmail(e.target.value)}
-                        placeholder={user.email}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                        required
-                      />
-                    </div>
-                    <div className="flex space-x-3">
-                      <button
-                        type="submit"
-                        disabled={loading}
-                        className="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-                      >
-                        {loading ? 'Sending...' : 'Send Reset Email'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setShowForgotPassword(false)}
-                        className="bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400 transition-colors"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </form>
-                )}
-              </div>
             </div>
           )}
 
@@ -356,9 +347,9 @@ export default function AccountSettingsModal({ isOpen, onClose }: AccountSetting
                 </p>
                 <ul className="list-disc list-inside text-red-700 dark:text-red-300 mb-4 space-y-1">
                   <li>Your profile and account information</li>
-                  <li>All your {user.role === 'academic' ? 'research projects' : 'funding calls'}</li>
-                  <li>Your search history and preferences</li>
-                  <li>Any connections and collaborations</li>
+                  <li>All your {user.role === 'ACADEMIC' ? 'research projects' : 'funding calls'}</li>
+                  <li>Your sessions and authentication tokens</li>
+                  <li>Any connections and relationships</li>
                 </ul>
                 <button
                   onClick={handleDeleteAccount}

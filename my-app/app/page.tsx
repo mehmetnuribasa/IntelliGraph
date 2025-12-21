@@ -82,10 +82,6 @@ function HomeContent() {
     fetchData();
   }, []);
 
-
-
-
-  
   // SEARCH FUNCTION
   const handleSearch = async () => {
     if (!searchQuery.trim() || searchQuery.trim().length < 2) return;
@@ -122,7 +118,7 @@ function HomeContent() {
       {/* Hero Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-linear-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 mb-6 tracking-tight max-w-2xl mx-auto">
+            <h2 className="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-linear-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 mb-6 tracking-tight max-w-4xl mx-auto">
             {user ? `Welcome back, ${user.name}!` : 'AI-Supported Project Management Platform'}
             </h2>
           <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed">
@@ -177,15 +173,15 @@ function HomeContent() {
         </div>
 
         {/* Tabs */}
-        <div className="flex justify-center mb-8">
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-1 shadow-sm">
+        <div className="flex justify-center mb-12">
+          <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl p-1.5 shadow-xl border border-gray-200/50 dark:border-gray-700/50 inline-flex flex-wrap justify-center gap-2">
             {searchResults && (
               <button
                 onClick={() => setSelectedTab('search-results')}
-                className={`px-6 py-3 rounded-lg font-medium transition-colors ${
+                className={`px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-200 ${
                   selectedTab === 'search-results'
-                    ? 'bg-green-600 text-white'
-                    : 'text-gray-600 dark:text-gray-300 hover:text-green-600'
+                    ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/30'
+                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50'
                 }`}
               >
                 Search Results ({searchResults.totalResults})
@@ -196,10 +192,10 @@ function HomeContent() {
             {user && (
               <button
                 onClick={() => setSelectedTab('my-content')}
-                className={`px-6 py-3 rounded-lg font-medium transition-colors hover:cursor-pointer ${
+                className={`px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-200 ${
                   selectedTab === 'my-content'
-                    ? 'bg-orange-600 text-white'
-                    : 'text-gray-600 dark:text-gray-300 hover:text-orange-600'
+                    ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg shadow-orange-500/30'
+                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50'
                 }`}
               >
                 My {user.role === 'ACADEMIC' ? 'Projects' : 'Funding Calls'}
@@ -208,40 +204,40 @@ function HomeContent() {
             
             <button
               onClick={() => setSelectedTab('projects')}
-              className={`px-6 py-3 rounded-lg font-medium transition-colors hover:cursor-pointer ${
+              className={`px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-200 ${
                 selectedTab === 'projects'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-600 dark:text-gray-300 hover:text-blue-600'
+                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30'
+                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50'
               }`}
             >
               All Projects
             </button>
             <button
               onClick={() => setSelectedTab('funding-calls')}
-              className={`px-6 py-3 rounded-lg font-medium transition-colors hover:cursor-pointer ${
+              className={`px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-200 ${
                 selectedTab === 'funding-calls'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-600 dark:text-gray-300 hover:text-blue-600'
+                  ? 'bg-gradient-to-r from-purple-600 to-violet-600 text-white shadow-lg shadow-purple-500/30'
+                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50'
               }`}
             >
               Funding Calls
             </button>
             <button
               onClick={() => setSelectedTab('researchers')}
-              className={`px-6 py-3 rounded-lg font-medium transition-colors hover:cursor-pointer ${
+              className={`px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-200 ${
                 selectedTab === 'researchers'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-600 dark:text-gray-300 hover:text-blue-600'
+                  ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-lg shadow-cyan-500/30'
+                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50'
               }`}
             >
               Researchers
             </button>
             <button
               onClick={() => setSelectedTab('visualization')}
-              className={`px-6 py-3 rounded-lg font-medium transition-colors hover:cursor-pointer ${
+              className={`px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-200 ${
                 selectedTab === 'visualization'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-600 dark:text-gray-300 hover:text-blue-600'
+                  ? 'bg-gradient-to-r from-pink-600 to-rose-600 text-white shadow-lg shadow-pink-500/30'
+                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50'
               }`}
             >
               Graph Visualization
@@ -250,229 +246,232 @@ function HomeContent() {
         </div>
 
         {/* Content Area */}
-        <div className="w-full">
+        <div className="w-full min-h-[400px]">
           {/* Main Content */}
           <div className="w-full">
             {selectedTab === 'search-results' && searchResults && (
-              <div className="space-y-6">
-                <h3 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
-                  Search Results for "{searchQuery}" ({searchResults.totalResults} results)
+              <div className="space-y-6 animate-fadeIn">
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center">
+                  <span className="bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 p-2 rounded-lg mr-3">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                  </span>
+                  Search Results for "{searchQuery}" <span className="ml-3 text-lg font-normal text-gray-500">({searchResults.totalResults} results)</span>
                 </h3>
                 {searchResults.combined && searchResults.combined.length > 0 ? (
-                  searchResults.combined.map((item: any) => (
-                    <div key={`${item.type}-${item.id}`} className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
-                      <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <span className={`inline-block px-2 py-1 text-xs rounded-full mb-2 ${
-                            item.type === 'Project' 
-                              ? 'bg-blue-100 text-blue-800' 
-                              : item.type === 'Call'
-                              ? 'bg-purple-100 text-purple-800'
-                              : 'bg-indigo-100 text-indigo-800'
-                          }`}>
-                            {item.type === 'Project' ? 'Research Project' : item.type === 'Call' ? 'Funding Call' : 'Researcher'}
-                          </span>
-                          <h4 className="text-xl font-semibold text-gray-900 dark:text-white">{item.title}</h4>
+                  <div className="grid gap-6">
+                    {searchResults.combined.map((item: any) => (
+                      <div key={`${item.type}-${item.id}`} className="group bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-gray-700 hover:-translate-y-1">
+                        <div className="flex justify-between items-start mb-4">
+                          <div>
+                            <span className={`inline-flex items-center px-3 py-1 text-xs font-medium rounded-full mb-3 ${
+                              item.type === 'Project' 
+                                ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' 
+                                : item.type === 'Call'
+                                ? 'bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
+                                : 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300'
+                            }`}>
+                              {item.type === 'Project' ? 'Research Project' : item.type === 'Call' ? 'Funding Call' : 'Researcher'}
+                            </span>
+                            <h4 className="text-xl font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{item.title}</h4>
+                          </div>
+                          {item.type !== 'Academic' && (
+                            <span className={`text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wide ${getStatusColor(item.status)}`}>
+                              {item.status || 'Active'}
+                            </span>
+                          )}
                         </div>
-                        {item.type !== 'Academic' && (
-                          <span className={`text-sm px-3 py-1 rounded-full ${getStatusColor(item.status)}`}>
-                            {item.status || 'Active'}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-gray-600 dark:text-gray-300 mb-3">
-                        {item.description || 'No description available'}
-                      </p>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                        <p className="text-gray-600 dark:text-gray-300 mb-4 line-clamp-3 leading-relaxed">
+                          {item.description || 'No description available'}
+                        </p>
+                        <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-700">
+                          <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
                             {item.type === 'Project' ? (
                               <>
-                                <strong>{item.subtitle || 'Unknown Researcher'}</strong>
+                                <span className="font-medium text-gray-900 dark:text-white">{item.subtitle || 'Unknown Researcher'}</span>
                                 {item.score && (
-                                  <span className="text-xs ml-2 text-gray-400">(Similarity: {(item.score * 100).toFixed(1)}%)</span>
+                                  <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded text-xs font-medium">
+                                    {(item.score * 100).toFixed(0)}% Match
+                                  </span>
                                 )}
                               </>
                             ) : item.type === 'Call' ? (
                               <>
-                                <strong>{item.subtitle || 'Unknown Institution'}</strong>
+                                <span className="font-medium text-gray-900 dark:text-white">{item.subtitle || 'Unknown Institution'}</span>
                                 {item.score && (
-                                  <span className="text-xs ml-2 text-gray-400">(Similarity: {(item.score * 100).toFixed(1)}%)</span>
+                                  <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded text-xs font-medium">
+                                    {(item.score * 100).toFixed(0)}% Match
+                                  </span>
                                 )}
                               </>
                             ) : (
                               <>
-                                <strong>{item.subtitle || 'Researcher'}</strong>
+                                <span className="font-medium text-gray-900 dark:text-white">{item.subtitle || 'Researcher'}</span>
                                 {item.score && (
-                                  <span className="text-xs ml-2 text-gray-400">(Match)</span>
+                                  <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded text-xs font-medium">
+                                    Match
+                                  </span>
                                 )}
                               </>
                             )}
-                          </p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))
+                    ))}
+                  </div>
                 ) : (
-                  <div className="text-center py-8">
-                    <p className="text-gray-600 dark:text-gray-300">No results found for "{searchQuery}". Try different keywords.</p>
+                  <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-3xl border border-dashed border-gray-300 dark:border-gray-700">
+                    <div className="text-6xl mb-4">🔍</div>
+                    <h4 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No results found</h4>
+                    <p className="text-gray-500 dark:text-gray-400">We couldn't find anything matching "{searchQuery}". Try different keywords.</p>
                   </div>
                 )}
               </div>
             )}
 
             {selectedTab === 'my-content' && user && (
-              <div className="space-y-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-2xl font-semibold text-gray-900 dark:text-white">
+              <div className="space-y-8 animate-fadeIn">
+                <div className="flex items-center justify-between mb-8">
+                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
+                    <span className="bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 p-2 rounded-lg mr-3">
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                    </span>
                     My {user.role === 'ACADEMIC' ? 'Projects' : 'Funding Calls'}
                   </h3>
                   {user.role === 'ACADEMIC' ? (
                     <a
                       href="/upload-project"
-                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                      className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-xl hover:shadow-lg hover:scale-105 transition-all duration-200 font-medium flex items-center"
                     >
+                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                       Add New Project
                     </a>
                   ) : (
                     <a
                       href="/upload-call"
-                      className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors font-medium"
+                      className="bg-gradient-to-r from-purple-600 to-violet-600 text-white px-6 py-3 rounded-xl hover:shadow-lg hover:scale-105 transition-all duration-200 font-medium flex items-center"
                     >
+                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                       Post New Funding Call
                     </a>
                   )}
                 </div>
                 
                 {user.role === 'ACADEMIC' ? (
-                  // Show user's projects - need to match by userId from projects
                   projects.filter(project => project.authorName === user.name).length > 0 ? (
-                    projects.filter(project => project.authorName === user.name).map((project) => (
-                      <div key={project.projectId || project.id} className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
-                        <div className="flex justify-between items-start mb-3">
-                          <h4 className="text-xl font-semibold text-gray-900 dark:text-white">{project.title}</h4>
-                          <span className={`text-sm px-3 py-1 rounded-full ${getStatusColor(project.status)}`}>
-                            {project.status || 'Active'}
-                          </span>
-                        </div>
-                        <p className="text-gray-600 dark:text-gray-300 mb-3">
-                          {project.summary || project.description || 'No description available'}
-                        </p>
-                        <div className="flex items-center justify-between mb-4">
-                          <div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">
-                              <span className="font-medium">Author:</span> {project.authorName || user.name}
-                            </p>
-                            {project.createdAt && (
-                              <p className="text-xs text-gray-400 dark:text-gray-500">
-                                Created: {formatDate(project.createdAt)}
-                              </p>
-                            )}
+                    <div className="grid gap-6">
+                      {projects.filter(project => project.authorName === user.name).map((project) => (
+                        <div key={project.projectId || project.id} className="group bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-gray-700 hover:-translate-y-1">
+                          <div className="flex justify-between items-start mb-4">
+                            <h4 className="text-xl font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{project.title}</h4>
+                            <span className={`text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wide ${getStatusColor(project.status)}`}>
+                              {project.status || 'Active'}
+                            </span>
+                          </div>
+                          <p className="text-gray-600 dark:text-gray-300 mb-4 line-clamp-3 leading-relaxed">
+                            {project.summary || project.description || 'No description available'}
+                          </p>
+                          <div className="flex items-center justify-between mb-6">
+                            <div className="text-sm text-gray-500 dark:text-gray-400">
+                              {project.createdAt && (
+                                <span className="flex items-center">
+                                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                  Created: {formatDate(project.createdAt)}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100 dark:border-gray-700">
+                            <button
+                              onClick={() => alert('Edit functionality will be implemented')}
+                              className="flex items-center space-x-2 px-4 py-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30 transition-colors font-medium text-sm"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                              <span>Edit</span>
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (window.confirm('Are you sure you want to delete this project?')) alert('Delete functionality will be implemented');
+                              }}
+                              className="flex items-center space-x-2 px-4 py-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30 transition-colors font-medium text-sm"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                              <span>Delete</span>
+                            </button>
                           </div>
                         </div>
-                        <div className="flex justify-end space-x-2 mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
-                          <button
-                            onClick={() => {
-                              // TODO: Implement edit functionality
-                              alert('Edit functionality will be implemented');
-                            }}
-                            className="flex items-center space-x-1 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 px-3 py-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors text-sm font-medium"
-                            title="Edit Project"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                            <span>Edit</span>
-                          </button>
-                          <button
-                            onClick={() => {
-                              if (window.confirm('Are you sure you want to delete this project? This action cannot be undone.')) {
-                                // TODO: Implement delete API call
-                                alert('Delete functionality will be implemented');
-                              }
-                            }}
-                            className="flex items-center space-x-1 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 px-3 py-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-sm font-medium"
-                            title="Delete Project"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                            <span>Delete</span>
-                          </button>
-                        </div>
-                      </div>
-                    ))
+                      ))}
+                    </div>
                   ) : (
-                    <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                    <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-3xl border border-dashed border-gray-300 dark:border-gray-700">
+                      <div className="text-6xl mb-4">🚀</div>
                       <h4 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No Projects Yet</h4>
-                      <p className="text-gray-600 dark:text-gray-300 mb-6">Start by adding your first research project to connect with funding opportunities.</p>
+                      <p className="text-gray-600 dark:text-gray-300 mb-8 max-w-md mx-auto">Start by adding your first research project to connect with funding opportunities.</p>
                       <a
                         href="/upload-project"
-                        className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                        className="bg-blue-600 text-white px-8 py-3 rounded-xl hover:bg-blue-700 transition-colors font-medium inline-flex items-center"
                       >
+                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                         Add Your First Project
                       </a>
                     </div>
                   )
                 ) : (
-                  // Show user's funding calls - Note: API doesn't provide institutionEmail, showing all calls for now
                   fundingCalls.length > 0 ? (
-                    fundingCalls.map((call) => (
-                      <div key={call.id} className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
-                        <div className="flex justify-between items-start mb-3">
-                          <h4 className="text-xl font-semibold text-gray-900 dark:text-white">{call.title}</h4>
-                          <span className={`text-sm px-3 py-1 rounded-full ${getStatusColor(call.status)}`}>
-                            {call.status || 'Open'}
-                          </span>
-                        </div>
-                        <p className="text-gray-600 dark:text-gray-300 mb-3">
-                          {call.description || 'No description available'}
-                        </p>
-                        <div className="grid grid-cols-2 gap-4 text-sm text-gray-600 dark:text-gray-300 mb-4">
-                          <div>
-                            <span className="font-medium">Institution:</span> {call.institutionName || 'Unknown'}
+                    <div className="grid gap-6">
+                      {fundingCalls.map((call) => (
+                        <div key={call.id} className="group bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-gray-700 hover:-translate-y-1">
+                          <div className="flex justify-between items-start mb-4">
+                            <h4 className="text-xl font-bold text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">{call.title}</h4>
+                            <span className={`text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wide ${getStatusColor(call.status)}`}>
+                              {call.status || 'Open'}
+                            </span>
                           </div>
-                          <div>
-                            <span className="font-medium">Status:</span> {call.status || 'Open'}
-                          </div>
-                          {call.deadline && (
-                            <div>
-                              <span className="font-medium">Deadline:</span> {formatDate(call.deadline)}
+                          <p className="text-gray-600 dark:text-gray-300 mb-4 line-clamp-3 leading-relaxed">
+                            {call.description || 'No description available'}
+                          </p>
+                          <div className="grid grid-cols-2 gap-4 text-sm text-gray-600 dark:text-gray-300 mb-6">
+                            <div className="flex items-center">
+                              <svg className="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                              <span className="font-medium">{call.institutionName || 'Unknown'}</span>
                             </div>
-                          )}
+                            {call.deadline && (
+                              <div className="flex items-center">
+                                <svg className="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                <span className="font-medium">Deadline: {formatDate(call.deadline)}</span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex space-x-3 pt-4 border-t border-gray-100 dark:border-gray-700">
+                            <button
+                              onClick={() => alert('Edit functionality will be implemented')}
+                              className="flex-1 flex justify-center items-center space-x-2 px-4 py-2 rounded-lg bg-purple-50 text-purple-600 hover:bg-purple-100 dark:bg-purple-900/20 dark:text-purple-400 dark:hover:bg-purple-900/30 transition-colors font-medium text-sm"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                              <span>Edit</span>
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (window.confirm('Are you sure you want to delete this funding call?')) alert('Delete functionality will be implemented');
+                              }}
+                              className="flex-1 flex justify-center items-center space-x-2 px-4 py-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30 transition-colors font-medium text-sm"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                              <span>Delete</span>
+                            </button>
+                          </div>
                         </div>
-                        <div className="flex space-x-2 border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
-                          <button
-                            onClick={() => {
-                              // TODO: Implement edit functionality
-                              alert('Edit funding call functionality will be implemented');
-                            }}
-                            className="flex-1 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
-                          >
-                            Edit Funding Call
-                          </button>
-                          <button
-                            onClick={() => {
-                              if (window.confirm('Are you sure you want to delete this funding call? This action cannot be undone.')) {
-                                // TODO: Implement delete API call
-                                alert('Delete funding call functionality will be implemented');
-                              }
-                            }}
-                            className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
-                          >
-                            Delete Funding Call
-                          </button>
-                        </div>
-                      </div>
-                    ))
+                      ))}
+                    </div>
                   ) : (
-                    <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                    <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-3xl border border-dashed border-gray-300 dark:border-gray-700">
+                      <div className="text-6xl mb-4">📢</div>
                       <h4 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No Funding Calls Yet</h4>
-                      <p className="text-gray-600 dark:text-gray-300 mb-6">Start by posting your first funding call to connect with researchers.</p>
+                      <p className="text-gray-600 dark:text-gray-300 mb-8 max-w-md mx-auto">Start by posting your first funding call to connect with researchers.</p>
                       <a
                         href="/upload-call"
-                        className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors font-medium"
+                        className="bg-purple-600 text-white px-8 py-3 rounded-xl hover:bg-purple-700 transition-colors font-medium inline-flex items-center"
                       >
+                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                         Post Your First Funding Call
                       </a>
                     </div>
@@ -482,150 +481,177 @@ function HomeContent() {
             )}
 
             {selectedTab === 'projects' && (
-              <div className="space-y-6">
-                <h3 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
+              <div className="space-y-8 animate-fadeIn">
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center">
+                  <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 p-2 rounded-lg mr-3">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
+                  </span>
                   Semantically Related Projects
                 </h3>
                 {loading ? (
-                  <div className="text-center py-8">
+                  <div className="text-center py-20">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
                     <p className="text-gray-600 dark:text-gray-300">Loading projects...</p>
                   </div>
                 ) : projects.length > 0 ? (
-                  projects.map((project: any) => (
-                    <div key={project.projectId || project.id} className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
-                      <div className="flex justify-between items-start mb-3">
-                        <h4 className="text-xl font-semibold text-gray-900 dark:text-white">{project.title}</h4>
-                        <span className={`text-sm px-3 py-1 rounded-full ${getStatusColor(project.status)}`}>
-                          {project.status || 'Active'}
-                        </span>
-                      </div>
-                      <p className="text-gray-600 dark:text-gray-300 mb-3">{project.summary || 'No summary available'}</p>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
-                            <strong>{project.authorName || 'Unknown Researcher'}</strong>
-                          </p>
-                          {project.createdAt && (
-                            <p className="text-xs text-gray-400 dark:text-gray-500">
-                              Created: {formatDate(project.createdAt)}
-                            </p>
-                          )}
+                  <div className="grid gap-6">
+                    {projects.map((project: any) => (
+                      <div key={project.projectId || project.id} className="group bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-gray-700 hover:-translate-y-1">
+                        <div className="flex justify-between items-start mb-4">
+                          <h4 className="text-xl font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{project.title}</h4>
+                          <span className={`text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wide ${getStatusColor(project.status)}`}>
+                            {project.status || 'Active'}
+                          </span>
+                        </div>
+                        <p className="text-gray-600 dark:text-gray-300 mb-4 line-clamp-3 leading-relaxed">{project.summary || 'No summary available'}</p>
+                        <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-700">
+                          <div className="flex items-center">
+                            <div className="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-xs mr-3">
+                              {(project.authorName || 'U').charAt(0)}
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                {project.authorName || 'Unknown Researcher'}
+                              </p>
+                              {project.createdAt && (
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                  {formatDate(project.createdAt)}
+                                </p>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))
+                    ))}
+                  </div>
                 ) : (
-                  <div className="text-center py-8">
-                    <p className="text-gray-600 dark:text-gray-300">No projects found. Be the first to upload a project!</p>
+                  <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-3xl border border-dashed border-gray-300 dark:border-gray-700">
+                    <div className="text-6xl mb-4">🧪</div>
+                    <p className="text-gray-600 dark:text-gray-300 text-lg">No projects found. Be the first to upload a project!</p>
                   </div>
                 )}
               </div>
             )}
 
             {selectedTab === 'funding-calls' && (
-              <div className="space-y-6">
-                <h3 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
+              <div className="space-y-8 animate-fadeIn">
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center">
+                  <span className="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 p-2 rounded-lg mr-3">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  </span>
                   Available Funding Calls
                 </h3>
                 {loading ? (
-                  <div className="text-center py-8">
+                  <div className="text-center py-20">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
                     <p className="text-gray-600 dark:text-gray-300">Loading funding calls...</p>
                   </div>
                 ) : fundingCalls.length > 0 ? (
-                  fundingCalls.map((call: any) => (
-                    <div key={call.id} className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
-                      <div className="flex justify-between items-start mb-3">
-                        <h4 className="text-xl font-semibold text-gray-900 dark:text-white">{call.title}</h4>
-                        <div className="flex flex-col items-end space-y-1">
-                          <span className={`text-sm px-3 py-1 rounded-full ${getStatusColor(call.status)}`}>
-                            {call.status || 'Active'}
-                          </span>
-                          {call.deadline && (
-                            <span className="text-sm text-gray-500">
-                              Deadline: {formatDate(call.deadline)}
+                  <div className="grid gap-6">
+                    {fundingCalls.map((call: any) => (
+                      <div key={call.id} className="group bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-gray-700 hover:-translate-y-1">
+                        <div className="flex justify-between items-start mb-4">
+                          <h4 className="text-xl font-bold text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">{call.title}</h4>
+                          <div className="flex flex-col items-end space-y-1">
+                            <span className={`text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wide ${getStatusColor(call.status)}`}>
+                              {call.status || 'Active'}
                             </span>
+                          </div>
+                        </div>
+                        <p className="text-gray-600 dark:text-gray-300 mb-4 line-clamp-3 leading-relaxed">{call.description || 'No description available'}</p>
+                        <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-700">
+                          <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
+                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                            <span className="font-medium">{call.institutionName || 'Unknown Institution'}</span>
+                          </div>
+                          {call.deadline && (
+                            <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
+                              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                              <span>Deadline: {formatDate(call.deadline)}</span>
+                            </div>
                           )}
                         </div>
                       </div>
-                      <p className="text-gray-600 dark:text-gray-300 mb-3">{call.description || 'No description available'}</p>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-                        <div>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
-                            <strong>Posted by:</strong> {call.institutionName || 'Unknown Institution'}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  ))
+                    ))}
+                  </div>
                 ) : (
-                  <div className="text-center py-8">
-                    <p className="text-gray-600 dark:text-gray-300">No funding calls available at the moment.</p>
+                  <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-3xl border border-dashed border-gray-300 dark:border-gray-700">
+                    <div className="text-6xl mb-4">💰</div>
+                    <p className="text-gray-600 dark:text-gray-300 text-lg">No funding calls available at the moment.</p>
                   </div>
                 )}
               </div>
             )}
 
             {selectedTab === 'researchers' && (
-              <div className="space-y-6">
-                <h3 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
+              <div className="space-y-8 animate-fadeIn">
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center">
+                  <span className="bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400 p-2 rounded-lg mr-3">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                  </span>
                   Platform Researchers
                 </h3>
                 {loading ? (
-                  <div className="text-center py-8">
+                  <div className="text-center py-20">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-600 mx-auto mb-4"></div>
                     <p className="text-gray-600 dark:text-gray-300">Loading researchers...</p>
                   </div>
                 ) : researchers.length > 0 ? (
-                  researchers.map((researcher: any) => (
-                    <div key={researcher.id} className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
-                      <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <h4 className="text-xl font-semibold text-gray-900 dark:text-white mb-1">
-                            {researcher.name}
-                          </h4>
-                          {researcher.title && (
-                            <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">
-                              {researcher.title}
-                            </p>
-                          )}
-                        </div>
-                        <span className="bg-gray-100 text-gray-800 text-sm px-3 py-1 rounded-full">
-                          {typeof researcher.projectCount === 'number' ? researcher.projectCount : 0} Projects
-                        </span>
-                      </div>
-                      
-                      <p className="text-gray-600 dark:text-gray-300 mb-2">{researcher.institution || 'Independent Researcher'}</p>
-                      
-                      {researcher.bio && (
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-                          {researcher.bio.substring(0, 150)}...
-                        </p>
-                      )}
-                      
-                      <div className="flex items-center justify-between">
-                        <div className="flex space-x-6">
-                          <span className="text-sm text-gray-600 dark:text-gray-300">
-                            <strong>{typeof researcher.projectCount === 'number' ? researcher.projectCount : 0}</strong> Research Projects
+                  <div className="grid gap-6">
+                    {researchers.map((researcher: any) => (
+                      <div key={researcher.id} className="group bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-gray-700 hover:-translate-y-1">
+                        <div className="flex justify-between items-start mb-4">
+                          <div className="flex items-center">
+                            <div className="h-12 w-12 rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center text-white font-bold text-xl mr-4 shadow-lg shadow-cyan-500/30">
+                              {researcher.name.charAt(0)}
+                            </div>
+                            <div>
+                              <h4 className="text-xl font-bold text-gray-900 dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
+                                {researcher.name}
+                              </h4>
+                              {researcher.title && (
+                                <p className="text-sm text-cyan-600 dark:text-cyan-400 font-medium">
+                                  {researcher.title}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <span className="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs font-semibold px-3 py-1 rounded-full">
+                            {typeof researcher.projectCount === 'number' ? researcher.projectCount : 0} Projects
                           </span>
-                          {researcher.createdAt && (
-                            <span className="text-sm text-gray-600 dark:text-gray-300">
-                              <strong>Member since:</strong> {formatDate(researcher.createdAt)}
-                            </span>
-                          )}
                         </div>
-                        <div className="flex space-x-2">
+                        
+                        <p className="text-gray-600 dark:text-gray-300 mb-2 flex items-center">
+                          <svg className="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                          {researcher.institution || 'Independent Researcher'}
+                        </p>
+                        
+                        {researcher.bio && (
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 line-clamp-2">
+                            {researcher.bio}
+                          </p>
+                        )}
+                        
+                        <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-700">
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            {researcher.createdAt && (
+                              <span>Member since {formatDate(researcher.createdAt)}</span>
+                            )}
+                          </div>
                           <button 
                             onClick={() => setSelectedResearcher(researcher)}
-                            className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium px-3 py-1 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                            className="text-cyan-600 hover:text-cyan-700 dark:text-cyan-400 dark:hover:text-cyan-300 text-sm font-bold px-4 py-2 rounded-lg hover:bg-cyan-50 dark:hover:bg-cyan-900/20 transition-colors"
                           >
                             View Profile
                           </button>
                         </div>
                       </div>
-                    </div>
-                  ))
+                    ))}
+                  </div>
                 ) : (
-                  <div className="text-center py-8">
-                    <p className="text-gray-600 dark:text-gray-300">No researchers found on the platform yet.</p>
+                  <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-3xl border border-dashed border-gray-300 dark:border-gray-700">
+                    <div className="text-6xl mb-4">👥</div>
+                    <p className="text-gray-600 dark:text-gray-300 text-lg">No researchers found on the platform yet.</p>
                   </div>
                 )}
               </div>
