@@ -3,12 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import Link from 'next/link';
-import AccountSettingsModal from './AccountSettingsModal';
 
 export default function Navbar() {
   const { user, logout } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [showAccountSettings, setShowAccountSettings] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
   // Add scroll effect
@@ -60,6 +58,14 @@ export default function Navbar() {
                   )}
                   
                   <Link 
+                    href={`/profile/${user.userId}`}
+                    className="text-sm font-medium text-gray-600 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400 transition-colors relative group"
+                  >
+                    My Profile
+                    <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-600 transition-all group-hover:w-full"></span>
+                  </Link>
+
+                  <Link 
                     href="/?tab=my-content"
                     className="text-sm font-medium text-gray-600 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400 transition-colors relative group"
                   >
@@ -98,11 +104,9 @@ export default function Navbar() {
                         <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{user.email}</p>
                       </div>
                       <div className="py-1">
-                        <button
-                          onClick={() => {
-                            setShowUserMenu(false);
-                            setShowAccountSettings(true);
-                          }}
+                        <Link
+                          href="/settings"
+                          onClick={() => setShowUserMenu(false)}
                           className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors hover:cursor-pointer"
                         >
                           <svg className="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -110,7 +114,7 @@ export default function Navbar() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                           </svg>
                           Account Settings
-                        </button>
+                        </Link>
                       </div>
                       <div className="border-t border-gray-100 dark:border-gray-700 my-1"></div>
                       <div className="py-1">
@@ -144,11 +148,6 @@ export default function Navbar() {
       </header>
       {/* Spacer to prevent content from hiding behind fixed header */}
       <div className="h-20"></div>
-
-      <AccountSettingsModal
-        isOpen={showAccountSettings}
-        onClose={() => setShowAccountSettings(false)}
-      />
     </>
   );
 }
