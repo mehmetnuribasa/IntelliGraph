@@ -120,12 +120,12 @@ function HomeContent() {
   return (
     <div className="min-h-screen bg-slate-50 dark:from-gray-900 dark:to-blue-900 dark:bg-gradient-to-br">
       {/* Hero Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-linear-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 mb-6 tracking-tight max-w-2xl mx-auto">
             {user ? `Welcome back, ${user.name}!` : 'AI-Supported Project Management Platform'}
-          </h2>
-          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+            </h2>
+          <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed">
             {user ? (
               user.role === 'ACADEMIC' 
                 ? 'Manage your research projects, discover funding opportunities, and connect with other researchers.'
@@ -137,31 +137,40 @@ function HomeContent() {
         </div>
 
         {/* Search Bar */}
-        <div className="max-w-3xl mx-auto mb-12">
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="AI-powered search for projects, funding calls, or researchers..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-              className="w-full px-6 py-4 text-lg border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-            />
-            <button 
-              onClick={handleSearch}
-              disabled={searching || searchQuery.trim().length < 2}
-              className="absolute right-3 top-3 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {searching ? 'Searching...' : 'Search'}
-            </button>
+        <div className="max-w-4xl mx-auto mb-16 relative z-10">
+          <div className="relative group">
+            <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+            <div className="relative flex items-center bg-white dark:bg-gray-800 rounded-2xl shadow-xl">
+              <div className="pl-6 text-gray-400">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+              </div>
+              <input
+                type="text"
+                placeholder="AI-powered search for projects, funding calls, or researchers..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                className="w-full px-4 py-5 text-lg bg-transparent border-none focus:ring-0 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none"
+              />
+              <div className="pr-3">
+                <button 
+                  onClick={handleSearch}
+                  disabled={searching || searchQuery.trim().length < 2}
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-xl hover:cursor-pointer hover:shadow-lg hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 font-medium"
+                >
+                  {searching ? 'Searching...' : 'Search'}
+                </button>
+              </div>
+            </div>
           </div>
           {searchResults && (
-            <div className="text-center">
+            <div className="text-center mt-4">
               <button
                 onClick={clearSearch}
-                className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 text-sm"
+                className="text-gray-500 hover:cursor-pointer hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400 text-sm font-medium transition-colors flex items-center justify-center mx-auto space-x-1"
               >
-                Clear search results
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                <span>Clear results</span>
               </button>
             </div>
           )}
