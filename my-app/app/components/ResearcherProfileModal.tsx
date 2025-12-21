@@ -77,7 +77,7 @@ export default function ResearcherProfileModal({ selectedResearcher, onClose, pr
             </div>
             <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
               <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">
-                {selectedResearcher.createdAt ? new Date(selectedResearcher.createdAt).getFullYear() : 'N/A'}
+                {selectedResearcher.createdAt ? formatDate(selectedResearcher.createdAt) : 'N/A'}
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-300">Member Since</div>
             </div>

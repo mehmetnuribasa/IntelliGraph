@@ -1,7 +1,6 @@
 'use client';
 import { useState, useEffect, Suspense } from 'react';
 import { useAuth } from './contexts/AuthContext';
-import Navbar from './components/Navbar';
 import GraphView from './components/GraphView';
 import ResearcherProfileModal from './components/ResearcherProfileModal';
 import api from '@/lib/api';
@@ -13,6 +12,25 @@ function HomeContent() {
 
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  // Helper for status colors
+  const getStatusColor = (status: string) => {
+    switch ((status || '').toLowerCase()) {
+      case 'active':
+      case 'open':
+        return 'bg-green-200 text-green-800 dark:bg-green-900/30 dark:text-green-300';
+      case 'completed':
+      case 'closed':
+        return 'bg-red-200 text-red-800 dark:bg-red-900/30 dark:text-red-300';
+      case 'planning':
+        return 'bg-blue-200 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
+      case 'paused':
+      case 'suspended':
+        return 'bg-yellow-200 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300';
+      default:
+        return 'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+    }
+  };
 
   // State Management
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
@@ -100,9 +118,7 @@ function HomeContent() {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-blue-900">
-      <Navbar />
-
+    <div className="min-h-screen bg-slate-50 dark:from-gray-900 dark:to-blue-900 dark:bg-gradient-to-br">
       {/* Hero Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center mb-12">
@@ -125,7 +141,7 @@ function HomeContent() {
           <div className="relative">
             <input
               type="text"
-              placeholder="Search projects, researchers, or topics using AI-powered semantic search..."
+              placeholder="AI-powered search for projects, funding calls, or researchers..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
@@ -171,7 +187,7 @@ function HomeContent() {
             {user && (
               <button
                 onClick={() => setSelectedTab('my-content')}
-                className={`px-6 py-3 rounded-lg font-medium transition-colors ${
+                className={`px-6 py-3 rounded-lg font-medium transition-colors hover:cursor-pointer ${
                   selectedTab === 'my-content'
                     ? 'bg-orange-600 text-white'
                     : 'text-gray-600 dark:text-gray-300 hover:text-orange-600'
@@ -183,7 +199,7 @@ function HomeContent() {
             
             <button
               onClick={() => setSelectedTab('projects')}
-              className={`px-6 py-3 rounded-lg font-medium transition-colors ${
+              className={`px-6 py-3 rounded-lg font-medium transition-colors hover:cursor-pointer ${
                 selectedTab === 'projects'
                   ? 'bg-blue-600 text-white'
                   : 'text-gray-600 dark:text-gray-300 hover:text-blue-600'
@@ -193,7 +209,7 @@ function HomeContent() {
             </button>
             <button
               onClick={() => setSelectedTab('funding-calls')}
-              className={`px-6 py-3 rounded-lg font-medium transition-colors ${
+              className={`px-6 py-3 rounded-lg font-medium transition-colors hover:cursor-pointer ${
                 selectedTab === 'funding-calls'
                   ? 'bg-blue-600 text-white'
                   : 'text-gray-600 dark:text-gray-300 hover:text-blue-600'
@@ -203,7 +219,7 @@ function HomeContent() {
             </button>
             <button
               onClick={() => setSelectedTab('researchers')}
-              className={`px-6 py-3 rounded-lg font-medium transition-colors ${
+              className={`px-6 py-3 rounded-lg font-medium transition-colors hover:cursor-pointer ${
                 selectedTab === 'researchers'
                   ? 'bg-blue-600 text-white'
                   : 'text-gray-600 dark:text-gray-300 hover:text-blue-600'
@@ -213,7 +229,7 @@ function HomeContent() {
             </button>
             <button
               onClick={() => setSelectedTab('visualization')}
-              className={`px-6 py-3 rounded-lg font-medium transition-colors ${
+              className={`px-6 py-3 rounded-lg font-medium transition-colors hover:cursor-pointer ${
                 selectedTab === 'visualization'
                   ? 'bg-blue-600 text-white'
                   : 'text-gray-600 dark:text-gray-300 hover:text-blue-600'
@@ -250,7 +266,7 @@ function HomeContent() {
                           <h4 className="text-xl font-semibold text-gray-900 dark:text-white">{item.title}</h4>
                         </div>
                         {item.type !== 'Academic' && (
-                          <span className="bg-green-100 text-green-800 text-sm px-3 py-1 rounded-full">
+                          <span className={`text-sm px-3 py-1 rounded-full ${getStatusColor(item.status)}`}>
                             {item.status || 'Active'}
                           </span>
                         )}
@@ -326,7 +342,7 @@ function HomeContent() {
                       <div key={project.projectId || project.id} className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
                         <div className="flex justify-between items-start mb-3">
                           <h4 className="text-xl font-semibold text-gray-900 dark:text-white">{project.title}</h4>
-                          <span className="bg-green-100 text-green-800 text-sm px-3 py-1 rounded-full">
+                          <span className={`text-sm px-3 py-1 rounded-full ${getStatusColor(project.status)}`}>
                             {project.status || 'Active'}
                           </span>
                         </div>
@@ -396,7 +412,7 @@ function HomeContent() {
                       <div key={call.id} className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
                         <div className="flex justify-between items-start mb-3">
                           <h4 className="text-xl font-semibold text-gray-900 dark:text-white">{call.title}</h4>
-                          <span className="bg-purple-100 text-purple-800 text-sm px-3 py-1 rounded-full">
+                          <span className={`text-sm px-3 py-1 rounded-full ${getStatusColor(call.status)}`}>
                             {call.status || 'Open'}
                           </span>
                         </div>
@@ -470,7 +486,7 @@ function HomeContent() {
                     <div key={project.projectId || project.id} className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
                       <div className="flex justify-between items-start mb-3">
                         <h4 className="text-xl font-semibold text-gray-900 dark:text-white">{project.title}</h4>
-                        <span className="bg-blue-100 text-blue-800 text-sm px-3 py-1 rounded-full">
+                        <span className={`text-sm px-3 py-1 rounded-full ${getStatusColor(project.status)}`}>
                           {project.status || 'Active'}
                         </span>
                       </div>
@@ -512,7 +528,7 @@ function HomeContent() {
                       <div className="flex justify-between items-start mb-3">
                         <h4 className="text-xl font-semibold text-gray-900 dark:text-white">{call.title}</h4>
                         <div className="flex flex-col items-end space-y-1">
-                          <span className="bg-green-100 text-green-800 text-sm px-3 py-1 rounded-full">
+                          <span className={`text-sm px-3 py-1 rounded-full ${getStatusColor(call.status)}`}>
                             {call.status || 'Active'}
                           </span>
                           {call.deadline && (

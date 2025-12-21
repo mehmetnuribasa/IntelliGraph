@@ -2,12 +2,13 @@
 
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import api from '@/lib/api';
 
 export default function UploadProjectPage() {
   const { user } = useAuth();
   const [project, setProject] = useState({
     title: '',
-    description: '',
+    summary: '',
     keywords: '',
     fieldOfStudy: '',
     startDate: '',
@@ -15,70 +16,32 @@ export default function UploadProjectPage() {
     budget: '',
     collaborators: '',
     publications: '',
-    sdgGoals: [] as string[],
-    status: 'ongoing'
+    status: 'Active'
   });
-
-  const sdgOptions = [
-    'No Poverty', 'Zero Hunger', 'Good Health and Well-being', 'Quality Education',
-    'Gender Equality', 'Clean Water and Sanitation', 'Affordable and Clean Energy',
-    'Decent Work and Economic Growth', 'Industry Innovation and Infrastructure',
-    'Reduced Inequalities', 'Sustainable Cities and Communities',
-    'Responsible Consumption and Production', 'Climate Action', 'Life Below Water',
-    'Life on Land', 'Peace Justice and Strong Institutions', 'Partnerships for the Goals'
-  ];
-
-  const handleSDGChange = (sdg: string) => {
-    setProject(prev => ({
-      ...prev,
-      sdgGoals: prev.sdgGoals.includes(sdg)
-        ? prev.sdgGoals.filter(goal => goal !== sdg)
-        : [...prev.sdgGoals, sdg]
-    }));
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     try {
-      // Debug: Log user data
-      console.log('Current user:', user);
-      console.log('Academic ID being sent:', user?.id);
-      
-      const response = await fetch('/api/projects', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...project,
-          academicId: user?.id
-        }),
-      });
+      // Prepare data according to API expectations
+      // API expects: title, summary, status, startDate, endDate
+      const projectData = {
+        title: project.title,
+        summary: project.summary || project.title,
+        status: project.status,
+        startDate: project.startDate || null,
+        endDate: project.endDate || null
+      };
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('API Error:', errorData);
-        
-        // Show detailed error if available
-        if (errorData.errors) {
-          const errorMessages = Object.entries(errorData.errors)
-            .map(([field, messages]: [string, any]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
-            .join('\n');
-          throw new Error(`Validation errors:\n${errorMessages}`);
-        }
-        
-        throw new Error(errorData.message || 'Project upload failed');
-      }
+      const response = await api.post('/projects', projectData);
 
-      const newProject = await response.json();
-      console.log('Project created:', newProject);
+      console.log('Project created:', response.data);
       alert('Project uploaded successfully!');
       
       // Reset form
       setProject({
         title: '',
-        description: '',
+        summary: '',
         keywords: '',
         fieldOfStudy: '',
         startDate: '',
@@ -86,17 +49,25 @@ export default function UploadProjectPage() {
         budget: '',
         collaborators: '',
         publications: '',
-        sdgGoals: [],
-        status: 'ongoing'
+        status: 'Active'
       });
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Project upload error:', error);
-      alert(`Project upload failed: ${error}`);
+      
+      // Handle validation errors
+      if (error.response?.data?.errors) {
+        const errorMessages = Object.entries(error.response.data.errors)
+          .map(([field, messages]: [string, any]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
+          .join('\n');
+        alert(`Validation errors:\n${errorMessages}`);
+      } else {
+        alert(`Project upload failed: ${error.response?.data?.message || error.message || 'Unknown error'}`);
+      }
     }
   };
 
-  if (!user || user.role !== 'academic') {
+  if (!user || user.role !== 'ACADEMIC') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-blue-900 flex items-center justify-center">
         <div className="text-center">
@@ -108,7 +79,7 @@ export default function UploadProjectPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-blue-900">
+    <div className="min-h-screen bg-slate-50 from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-blue-900 dark:bg-gradient-to-br">
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">Upload Research Project</h1>
@@ -159,8 +130,8 @@ export default function UploadProjectPage() {
                 Project Description *
               </label>
               <textarea
-                value={project.description}
-                onChange={(e) => setProject(prev => ({ ...prev, description: e.target.value }))}
+                value={project.summary}
+                onChange={(e) => setProject(prev => ({ ...prev, summary: e.target.value }))}
                 rows={4}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 placeholder="Describe your research project, objectives, methodology, and expected outcomes..."
@@ -170,7 +141,7 @@ export default function UploadProjectPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Keywords (comma-separated)
+                Keywords (comma-separated) *
               </label>
               <input
                 type="text"
@@ -178,31 +149,34 @@ export default function UploadProjectPage() {
                 onChange={(e) => setProject(prev => ({ ...prev, keywords: e.target.value }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 placeholder="e.g., machine learning, natural language processing, graph mining"
+                required
               />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Start Date
+                  Start Date *
                 </label>
                 <input
                   type="date"
                   value={project.startDate}
                   onChange={(e) => setProject(prev => ({ ...prev, startDate: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  required
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  End Date
+                  End Date *
                 </label>
                 <input
                   type="date"
                   value={project.endDate}
                   onChange={(e) => setProject(prev => ({ ...prev, endDate: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  required
                 />
               </div>
 
@@ -218,6 +192,23 @@ export default function UploadProjectPage() {
                   placeholder="0"
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Project Status *
+              </label>
+              <select
+                value={project.status}
+                onChange={(e) => setProject(prev => ({ ...prev, status: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                required
+              >
+                <option value="Active">Active</option>
+                <option value="Completed">Completed</option>
+                <option value="Planning">Planning</option>
+                <option value="Paused">Paused</option>
+              </select>
             </div>
 
             <div>
@@ -244,41 +235,6 @@ export default function UploadProjectPage() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 placeholder="List related publications, DOIs, or conference papers..."
               />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Sustainable Development Goals (SDGs)
-              </label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-40 overflow-y-auto border border-gray-300 rounded-lg p-3 dark:border-gray-600">
-                {sdgOptions.map((sdg) => (
-                  <label key={sdg} className="flex items-center text-sm">
-                    <input
-                      type="checkbox"
-                      checked={project.sdgGoals.includes(sdg)}
-                      onChange={() => handleSDGChange(sdg)}
-                      className="mr-2"
-                    />
-                    <span className="text-gray-700 dark:text-gray-300">{sdg}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Project Status
-              </label>
-              <select
-                value={project.status}
-                onChange={(e) => setProject(prev => ({ ...prev, status: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-              >
-                <option value="ongoing">Ongoing</option>
-                <option value="completed">Completed</option>
-                <option value="planned">Planned</option>
-                <option value="suspended">Suspended</option>
-              </select>
             </div>
 
             <div className="flex gap-4 pt-6">
