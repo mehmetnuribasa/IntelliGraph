@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import api from '@/lib/api';
 
 export default function UploadCallPage() {
   const { user } = useAuth();
@@ -11,14 +12,9 @@ export default function UploadCallPage() {
     eligibility: '',
     fundingAmount: '',
     deadline: '',
-    applicationDeadline: '',
     categories: [] as string[],
-    requirements: '',
     contactInfo: '',
-    website: '',
-    sdgFocus: [] as string[],
-    applicationProcess: '',
-    evaluationCriteria: ''
+    website: ''
   });
 
   const categoryOptions = [
@@ -27,15 +23,6 @@ export default function UploadCallPage() {
     'Computer Science & IT', 'Mathematics & Statistics', 'Physics & Astronomy',
     'Biology & Life Sciences', 'Chemistry & Materials', 'Earth & Environmental Sciences',
     'Social Sciences & Humanities', 'Education & Training', 'Art & Culture'
-  ];
-
-  const sdgOptions = [
-    'No Poverty', 'Zero Hunger', 'Good Health and Well-being', 'Quality Education',
-    'Gender Equality', 'Clean Water and Sanitation', 'Affordable and Clean Energy',
-    'Decent Work and Economic Growth', 'Industry Innovation and Infrastructure',
-    'Reduced Inequalities', 'Sustainable Cities and Communities',
-    'Responsible Consumption and Production', 'Climate Action', 'Life Below Water',
-    'Life on Land', 'Peace Justice and Strong Institutions', 'Partnerships for the Goals'
   ];
 
   const handleCategoryChange = (category: string) => {
@@ -47,37 +34,32 @@ export default function UploadCallPage() {
     }));
   };
 
-  const handleSDGChange = (sdg: string) => {
-    setCall(prev => ({
-      ...prev,
-      sdgFocus: prev.sdgFocus.includes(sdg)
-        ? prev.sdgFocus.filter(goal => goal !== sdg)
-        : [...prev.sdgFocus, sdg]
-    }));
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate deadline
+    const selectedDate = new Date(call.deadline);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset time part for accurate date comparison
+
+    if (selectedDate < today) {
+      alert('Deadline cannot be in the past. Please select a valid date.');
+      return;
+    }
     
     try {
-      const response = await fetch('/api/funding-calls', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...call,
-          institutionId: user?.id
-        }),
-      });
+      // Prepare data according to API expectations
+      // API expects: title, description, deadline, status
+      const callData = {
+        title: call.title,
+        description: call.description,
+        deadline: call.deadline,
+        status: 'Open' // Default status, API accepts: 'Open', 'Closed', 'Paused'
+      };
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Funding call upload failed');
-      }
+      const response = await api.post('/calls', callData);
 
-      const newCall = await response.json();
-      console.log('Funding call created:', newCall);
+      console.log('Funding call created:', response.data);
       alert('Funding call published successfully!');
       
       // Reset form
@@ -87,23 +69,27 @@ export default function UploadCallPage() {
         eligibility: '',
         fundingAmount: '',
         deadline: '',
-        applicationDeadline: '',
         categories: [],
-        requirements: '',
         contactInfo: '',
-        website: '',
-        sdgFocus: [],
-        applicationProcess: '',
-        evaluationCriteria: ''
+        website: ''
       });
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Funding call upload error:', error);
-      alert(`Funding call upload failed: ${error}`);
+      
+      // Handle validation errors
+      if (error.response?.data?.errors) {
+        const errorMessages = Object.entries(error.response.data.errors)
+          .map(([field, messages]: [string, any]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
+          .join('\n');
+        alert(`Validation errors:\n${errorMessages}`);
+      } else {
+        alert(`Funding call upload failed: ${error.response?.data?.message || error.message || 'Unknown error'}`);
+      }
     }
   };
 
-  if (!user || user.role !== 'institution') {
+  if (!user || user.role !== 'FUNDING_MANAGER') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-blue-900 flex items-center justify-center">
         <div className="text-center">
@@ -115,7 +101,7 @@ export default function UploadCallPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-blue-900">
+    <div className="min-h-screen bg-slate-50 from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-blue-900 dark:bg-gradient-to-br">
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">Post Funding Call</h1>
@@ -166,12 +152,13 @@ export default function UploadCallPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Application Deadline *
+                  Deadline *
                 </label>
                 <input
                   type="date"
-                  value={call.applicationDeadline}
-                  onChange={(e) => setCall(prev => ({ ...prev, applicationDeadline: e.target.value }))}
+                  value={call.deadline}
+                  min={new Date().toISOString().split('T')[0]}
+                  onChange={(e) => setCall(prev => ({ ...prev, deadline: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   required
                 />
@@ -206,64 +193,6 @@ export default function UploadCallPage() {
                       className="mr-2"
                     />
                     <span className="text-gray-700 dark:text-gray-300">{category}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Application Requirements
-              </label>
-              <textarea
-                value={call.requirements}
-                onChange={(e) => setCall(prev => ({ ...prev, requirements: e.target.value }))}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                placeholder="Required documents, forms, project proposal format, etc..."
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Application Process
-              </label>
-              <textarea
-                value={call.applicationProcess}
-                onChange={(e) => setCall(prev => ({ ...prev, applicationProcess: e.target.value }))}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                placeholder="Step-by-step application process, where to submit, how to submit..."
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Evaluation Criteria
-              </label>
-              <textarea
-                value={call.evaluationCriteria}
-                onChange={(e) => setCall(prev => ({ ...prev, evaluationCriteria: e.target.value }))}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                placeholder="How will projects be evaluated? Scoring criteria, review process..."
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                SDG Focus Areas
-              </label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-40 overflow-y-auto border border-gray-300 rounded-lg p-3 dark:border-gray-600">
-                {sdgOptions.map((sdg) => (
-                  <label key={sdg} className="flex items-center text-sm">
-                    <input
-                      type="checkbox"
-                      checked={call.sdgFocus.includes(sdg)}
-                      onChange={() => handleSDGChange(sdg)}
-                      className="mr-2"
-                    />
-                    <span className="text-gray-700 dark:text-gray-300">{sdg}</span>
                   </label>
                 ))}
               </div>

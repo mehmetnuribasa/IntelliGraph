@@ -73,14 +73,14 @@ export async function POST(req: Request) {
     const accessToken = jwt.sign(
       userPayload,
       ACCESS_TOKEN_SECRET,
-      { expiresIn: '1m' } 
+      { expiresIn: '15m' } 
     );
 
     // Refresh Token
     const refreshToken = jwt.sign(
       userPayload,
       REFRESH_TOKEN_SECRET,
-      { expiresIn: '3m' }  // TEMPORARILY (should 7 days)
+      { expiresIn: '7d' }  // TEMPORARILY (should 7 days)
     );
 
     // Store Refresh Token in Database
