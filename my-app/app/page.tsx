@@ -2,7 +2,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useAuth } from './contexts/AuthContext';
 import GraphView from './components/GraphView';
-import ResearcherProfileModal from './components/ResearcherProfileModal';
+import Link from 'next/link';
 import api from '@/lib/api';
 import { formatDate } from '@/lib/utils';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -52,7 +52,6 @@ function HomeContent() {
   const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<any>(null);
-  const [selectedResearcher, setSelectedResearcher] = useState<any>(null);
 
   // DATA FETCHING (Backend Integration)
   useEffect(() => {
@@ -638,12 +637,12 @@ function HomeContent() {
                               <span>Member since {formatDate(researcher.createdAt)}</span>
                             )}
                           </div>
-                          <button 
-                            onClick={() => setSelectedResearcher(researcher)}
+                          <Link 
+                            href={`/profile/${researcher.id}`}
                             className="text-cyan-600 hover:text-cyan-700 dark:text-cyan-400 dark:hover:text-cyan-300 text-sm font-bold px-4 py-2 rounded-lg hover:bg-cyan-50 dark:hover:bg-cyan-900/20 transition-colors"
                           >
                             View Profile
-                          </button>
+                          </Link>
                         </div>
                       </div>
                     ))}
@@ -665,15 +664,6 @@ function HomeContent() {
           </div>
         </div>
       </section>
-
-
-
-      {/* Researcher Profile Modal */}
-      <ResearcherProfileModal
-        selectedResearcher={selectedResearcher}
-        onClose={() => setSelectedResearcher(null)}
-        projects={projects}
-      />
     </div>
   );
 }
