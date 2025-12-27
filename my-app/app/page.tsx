@@ -6,6 +6,8 @@ import Link from 'next/link';
 import api from '@/lib/api';
 import { formatDate } from '@/lib/utils';
 import { useRouter, useSearchParams } from 'next/navigation';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 function HomeContent() {
   const { user } = useAuth();
@@ -32,6 +34,7 @@ function HomeContent() {
     }
   };
 
+  
   // State Management
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
   const [selectedTab, setSelectedTab] = useState('projects');
@@ -43,6 +46,7 @@ function HomeContent() {
     }
   }, [searchParams]);
   
+
   // Data States
   const [projects, setProjects] = useState<any[]>([]);
   const [fundingCalls, setFundingCalls] = useState<any[]>([]);
@@ -81,26 +85,52 @@ function HomeContent() {
     fetchData();
   }, []);
 
+
+  
+  const [aiAnswer, setAiAnswer] = useState<string | null>(null);
+  const [loadingAi, setLoadingAi] = useState(false)
+
   // SEARCH FUNCTION
   const handleSearch = async () => {
     if (!searchQuery.trim() || searchQuery.trim().length < 2) return;
     
-    router.push(`/?q=${encodeURIComponent(searchQuery)}`, { scroll: false });
+    // Start loading states
     setSearching(true);
+    setLoadingAi(true);
+    setAiAnswer(null);
+    
     try {
-      const res = await api.get(`/search?q=${encodeURIComponent(searchQuery)}`);
+      // 1. Search API Request
+      const searchPromise = api.post(`/search`, { query: searchQuery });
+      
+      // 2. Chat API Request
+      const chatPromise = api.post('/chat', { query: searchQuery });
+      
+      // Wait for search results first and display them (User is not kept waiting)
+      const searchRes = await searchPromise;
       
       setSearchResults({
-        combined: res.data.results,
-        totalResults: res.data.results.length
+        combined: searchRes.data.results,
+        totalResults: searchRes.data.results.length
       });
       setSelectedTab('search-results');
-      
+      setSearching(false);
+
+      // Continue waiting for AI answer after search is done
+      try {
+        const chatRes = await chatPromise;
+        setAiAnswer(chatRes.data.answer);
+      } catch (chatError) {
+        console.error("AI answer error:", chatError);
+        setAiAnswer(null); // Silently close the box on error
+      }
+
     } catch (error) {
       console.error('Search error:', error);
       alert('Search failed.');
-    } finally {
       setSearching(false);
+    } finally {
+      setLoadingAi(false); // AI loading ends here
     }
   };
 
@@ -109,7 +139,6 @@ function HomeContent() {
     setSearchQuery('');
     setSelectedTab('projects');
   };
-
 
 
   return (
@@ -135,19 +164,28 @@ function HomeContent() {
         <div className="max-w-4xl mx-auto mb-16 relative z-10">
           <div className="relative group">
             <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
-            <div className="relative flex items-center bg-white dark:bg-gray-800 rounded-2xl shadow-xl">
-              <div className="pl-6 text-gray-400">
+            <div className="relative flex items-end bg-white dark:bg-gray-800 rounded-2xl shadow-xl transition-all duration-200">
+              <div className="pl-6 pb-5 text-gray-400">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
               </div>
-              <input
-                type="text"
-                placeholder="AI-powered search for projects, funding calls, or researchers..."
+              <textarea
+                placeholder="Describe your research idea in detail to ask your AI Assistant..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                className="w-full px-4 py-5 text-lg bg-transparent border-none focus:ring-0 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none"
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  e.target.style.height = 'auto';
+                  e.target.style.height = `${e.target.scrollHeight}px`;
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSearch();
+                  }
+                }}
+                rows={1}
+                className="w-full px-4 py-5 text-lg bg-transparent border-none focus:ring-0 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none resize-none overflow-hidden min-h-[68px]"
               />
-              <div className="pr-3">
+              <div className="pr-3 pb-2.5">
                 <button 
                   onClick={handleSearch}
                   disabled={searching || searchQuery.trim().length < 2}
@@ -158,6 +196,18 @@ function HomeContent() {
               </div>
             </div>
           </div>
+          
+          {!searchResults && (
+            <div className="mt-3 px-2 animate-fadeIn flex justify-center">
+               <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                <svg className="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
+                <span>
+                  <span className="font-semibold text-indigo-600 dark:text-indigo-400">AI Tip:</span> You can search by keywords OR describe your idea in detail. Don't limit yourself!
+                </span>
+              </p>
+            </div>
+          )}
+
           {searchResults && (
             <div className="text-center mt-4">
               <button
@@ -244,17 +294,61 @@ function HomeContent() {
           </div>
         </div>
 
+
         {/* Content Area */}
         <div className="w-full min-h-[400px]">
           {/* Main Content */}
           <div className="w-full">
             {selectedTab === 'search-results' && searchResults && (
               <div className="space-y-6 animate-fadeIn">
+                
+                {/* --- AI INTELLIGENT INSIGHTS BOX --- */}
+                {(loadingAi || aiAnswer) && (
+                  <div className="relative overflow-hidden rounded-2xl border border-indigo-100 dark:border-indigo-800 bg-white dark:bg-gray-800 p-6 shadow-lg hover:shadow-xl transition-shadow duration-300">
+                    {/* Background  (Gradient Mesh) */}
+                    <div className="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-gradient-to-br from-indigo-400 to-purple-400 rounded-full opacity-10 blur-2xl"></div>
+                    <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-32 h-32 bg-gradient-to-tr from-blue-400 to-cyan-400 rounded-full opacity-10 blur-2xl"></div>
+                    
+                    <div className="relative z-10">
+                      {/* Header Area */}
+                      <div className="flex items-center space-x-3 mb-4">
+                        <div className={`p-2 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md ${loadingAi ? 'animate-pulse' : ''}`}>
+                           {/* Sparkles Icon */}
+                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                        </div>
+                        <h4 className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400">
+                          AI Research Assistant
+                        </h4>
+                      </div>
+
+                      {/* Content Area */}
+                      {loadingAi ? (
+                        <div className="flex flex-col space-y-3">
+                          <div className="flex items-center space-x-2 text-indigo-600 dark:text-indigo-400 animate-pulse">
+                            <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                            <span className="text-sm font-medium">Analyzing platform data for "{searchQuery}"...</span>
+                          </div>
+                          {/* Skeleton Loaders */}
+                          <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded w-3/4 animate-pulse"></div>
+                          <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded w-1/2 animate-pulse"></div>
+                        </div>
+                      ) : (
+                        <div className="prose prose-indigo prose-sm dark:prose-invert max-w-none">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {aiAnswer}
+                          </ReactMarkdown>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* --- SEARCH RESULTS LIST --- */}
                 <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center">
                   <span className="bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 p-2 rounded-lg mr-3">
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                   </span>
-                  Search Results for "{searchQuery}" <span className="ml-3 text-lg font-normal text-gray-500">({searchResults.totalResults} results)</span>
+                  Search Results for "{searchQuery.length > 40 ? searchQuery.substring(0, 40) + '...' : searchQuery}" <span className="ml-3 text-lg font-normal text-gray-500">({searchResults.totalResults} results)</span>
                 </h3>
                 {searchResults.combined && searchResults.combined.length > 0 ? (
                   <div className="grid gap-6">
