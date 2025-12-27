@@ -24,6 +24,7 @@ export async function GET() {
       
       RETURN a.userId AS id, 
              a.name AS name, 
+             a.email AS email,
              a.title AS title, 
              a.bio AS bio,
              a.createdAt AS createdAt,
@@ -38,6 +39,7 @@ export async function GET() {
       return {
         id: record.get('id'),
         name: record.get('name'),
+        email: record.get('email'),
         title: record.get('title'),
         bio: record.get('bio'),
         institution: record.get('institution') || 'Independent Researcher',

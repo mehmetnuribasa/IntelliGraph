@@ -35,7 +35,12 @@ api.interceptors.response.use(
 
     // If error is 401 (Unauthorized) AND we haven't retried before
     // It means this endpoint REQUIRES a token but ours is invalid.
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // IMPORTANT: Do not retry if the failed request was already a login attempt!
+    if (
+      error.response?.status === 401 && 
+      !originalRequest._retry &&
+      !originalRequest.url?.includes('/login')
+    ) {
       originalRequest._retry = true;
 
       try {
