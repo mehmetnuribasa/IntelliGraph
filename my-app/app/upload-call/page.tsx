@@ -1,20 +1,26 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '../contexts/AuthContext';
 import api from '@/lib/api';
 
 export default function UploadCallPage() {
   const { user } = useAuth();
+  const router = useRouter();
   const [call, setCall] = useState({
     title: '',
     description: '',
-    fundingAmount: '',
+    keywords: '',
+    budget: '',
     deadline: '',
     categories: [] as string[],
     contactInfo: '',
     website: ''
   });
+
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const categoryOptions = [
     'Basic Research', 'Applied Research', 'Technology Development', 'Innovation Projects',
@@ -35,10 +41,12 @@ export default function UploadCallPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSuccessMessage(null);
+    setErrorMessage(null);
 
     // Validate funding amount
-    if (isNaN(Number(call.fundingAmount)) || Number(call.fundingAmount) < 0) {
-      alert('Please enter a valid positive number for the funding amount.');
+    if (!call.budget || isNaN(Number(call.budget)) || Number(call.budget) < 0) {
+      setErrorMessage('Please enter a valid positive number for the funding amount.');
       return;
     }
 
@@ -47,7 +55,7 @@ export default function UploadCallPage() {
       try {
         new URL(call.website);
       } catch (_) {
-        alert('Please enter a valid URL for the website (including http:// or https://).');
+        setErrorMessage('Please enter a valid URL for the website (including http:// or https://).');
         return;
       }
     }
@@ -58,35 +66,31 @@ export default function UploadCallPage() {
     today.setHours(0, 0, 0, 0); // Reset time part for accurate date comparison
 
     if (selectedDate < today) {
-      alert('Deadline cannot be in the past. Please select a valid date.');
+      setErrorMessage('Deadline cannot be in the past. Please select a valid date.');
+      return;
+    }
+
+    // Validate keywords
+    if (!call.keywords || call.keywords.trim().length === 0) {
+      setErrorMessage('Please enter at least one keyword.');
       return;
     }
     
     try {
       // Prepare data according to API expectations
-      // API expects: title, description, deadline, status
+      // API expects: title, description, deadline, status, budget, website
       const callData = {
         title: call.title,
         description: call.description,
         deadline: call.deadline,
-        status: 'Open' // Default status, API accepts: 'Open', 'Closed', 'Paused'
+        status: 'Open', // Default status, API accepts: 'Open', 'Closed', 'Paused'
+        budget: Number(call.budget),
+        website: call.website || null,
+        keywords: call.keywords ? call.keywords.split(',').map(k => k.trim()).filter(k => k.length > 0) : []
       };
 
       const response = await api.post('/calls', callData);
-
-      console.log('Funding call created:', response.data);
-      alert('Funding call published successfully!');
-      
-      // Reset form
-      setCall({
-        title: '',
-        description: '',
-        fundingAmount: '',
-        deadline: '',
-        categories: [],
-        contactInfo: '',
-        website: ''
-      });
+      router.push('/');
       
     } catch (error: any) {
       console.error('Funding call upload error:', error);
@@ -96,9 +100,9 @@ export default function UploadCallPage() {
         const errorMessages = Object.entries(error.response.data.errors)
           .map(([field, messages]: [string, any]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
           .join('\n');
-        alert(`Validation errors:\n${errorMessages}`);
+        setErrorMessage(`Validation errors:\n${errorMessages}`);
       } else {
-        alert(`Funding call upload failed: ${error.response?.data?.message || error.message || 'Unknown error'}`);
+        setErrorMessage(`Funding call upload failed: ${error.response?.data?.message || error.message || 'Unknown error'}`);
       }
     }
   };
@@ -120,6 +124,20 @@ export default function UploadCallPage() {
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">Post Funding Call</h1>
           
+          {successMessage && (
+            <div className="mb-6 p-4 bg-green-100 border border-green-200 text-green-700 rounded-lg flex items-center">
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+              {successMessage}
+            </div>
+          )}
+
+          {errorMessage && (
+            <div className="mb-6 p-4 bg-red-100 border border-red-200 text-red-700 rounded-lg flex items-center whitespace-pre-line">
+              <svg className="w-5 h-5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              {errorMessage}
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -149,6 +167,20 @@ export default function UploadCallPage() {
               />
             </div>
 
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Keywords *
+              </label>
+              <input
+                type="text"
+                value={call.keywords}
+                onChange={(e) => setCall(prev => ({ ...prev, keywords: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                placeholder="e.g., AI, Machine Learning, Healthcare (comma separated)"
+                required
+              />
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -157,8 +189,8 @@ export default function UploadCallPage() {
                 <input
                   type="number"
                   min="0"
-                  value={call.fundingAmount}
-                  onChange={(e) => setCall(prev => ({ ...prev, fundingAmount: e.target.value }))}
+                  value={call.budget}
+                  onChange={(e) => setCall(prev => ({ ...prev, budget: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   placeholder="e.g., 50000"
                   required
@@ -202,7 +234,7 @@ export default function UploadCallPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Website/More Information
+                  Website
                 </label>
                 <input
                   type="url"

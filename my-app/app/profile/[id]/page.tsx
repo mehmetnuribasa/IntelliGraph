@@ -13,15 +13,16 @@ export default function ProfilePage() {
   
   const [profile, setProfile] = useState<any>(null);
   const [projects, setProjects] = useState<any[]>([]);
+  const [fundingCalls, setFundingCalls] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        // Fetch all academics and find the one matching ID
-        const academicsRes = await api.get('/academics');
-        const foundProfile = academicsRes.data.find((p: any) => p.id === id);
+        // Fetch specific academic profile
+        const profileRes = await api.get(`/academics/${id}`);
+        const foundProfile = profileRes.data;
         
         if (foundProfile) {
           setProfile(foundProfile);
@@ -29,9 +30,15 @@ export default function ProfilePage() {
           // Fetch projects
           const projectsRes = await api.get('/projects');
           // Filter projects for this user
-          // Assuming authorName is the link, or maybe authorId if available
-          const userProjects = projectsRes.data.filter((p: any) => p.authorName === foundProfile.name);
+          const userProjects = projectsRes.data.filter((p: any) => p.authorId === foundProfile.id);
           setProjects(userProjects);
+
+          // Fetch funding calls if user is a funding manager
+          if (foundProfile.role === 'FUNDING_MANAGER') {
+            const callsRes = await api.get('/calls');
+            const userCalls = callsRes.data.filter((c: any) => c.authorId === foundProfile.id);
+            setFundingCalls(userCalls);
+          }
         }
       } catch (error) {
         console.error('Error fetching profile:', error);
@@ -235,6 +242,83 @@ export default function ProfilePage() {
                 )}
               </div>
             </div>
+
+            {/* Funding Calls (Only for Funding Managers) */}
+            {profile.role === 'FUNDING_MANAGER' && (
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">Funding Calls</h3>
+                  {isOwnProfile && (
+                    <Link 
+                      href="/upload-call"
+                      className="text-sm font-medium text-purple-600 hover:text-purple-700 dark:text-purple-400"
+                    >
+                      + Post New Call
+                    </Link>
+                  )}
+                </div>
+                
+                <div className="space-y-4">
+                  {fundingCalls.length > 0 ? (
+                    fundingCalls.map((call) => (
+                      <div key={call.id} className="p-5 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl hover:shadow-md transition-shadow">
+                        <div className="flex justify-between items-start mb-2">
+                          <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
+                            {call.title}
+                          </h4>
+                          <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            call.status === 'Closed' ? 'bg-red-100 text-red-800' :
+                            'bg-green-100 text-green-800'
+                          }`}>
+                            {call.status || 'Open'}
+                          </span>
+                        </div>
+                        <p className="text-gray-600 dark:text-gray-300 mb-3 line-clamp-2">
+                          {call.description || 'No description available'}
+                        </p>
+
+                        {/* Keywords Display */}
+                        {call.keywords && call.keywords.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mb-3">
+                            {call.keywords.map((keyword: string, idx: number) => (
+                              <span key={idx} className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 rounded-md">
+                                #{keyword}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 flex-wrap gap-2">
+                          <div className="flex items-center mr-4">
+                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                            <span>{call.institutionName || 'Unknown Institution'}</span>
+                          </div>
+                          
+                          {call.deadline && (
+                            <div className="flex items-center mr-4">
+                              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                              <span>Deadline: {formatDate(call.deadline)}</span>
+                            </div>
+                          )}
+
+                          {/* Budget Display */}
+                          {call.budget && (
+                             <div className="flex items-center text-green-600 dark:text-green-400 font-medium">
+                                <span className="mr-1">💰</span>
+                                <span>{Number(call.budget).toLocaleString()} TL</span>
+                             </div>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 bg-gray-50 dark:bg-gray-700/30 rounded-xl border border-dashed border-gray-200 dark:border-gray-600">
+                      <p className="text-gray-500 dark:text-gray-400">No funding calls posted yet.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </main>

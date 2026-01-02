@@ -5,6 +5,10 @@ import jwt from 'jsonwebtoken';
 
 const ACCESS_TOKEN_SECRET = process.env.JWT_SECRET || 'access_secret';
 
+/**
+ * @api {delete} /api/projects/:id
+ * @desc Deletes a project by ID (only by the author)
+ */
 export async function DELETE(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -13,7 +17,7 @@ export async function DELETE(
   const { id } = await params;
 
   try {
-    // 1. Auth Check
+    // Auth Check
     const authHeader = req.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
@@ -29,7 +33,7 @@ export async function DELETE(
 
     session = driver.session();
 
-    // 2. Delete Query (Only if user is author)
+    // Delete Query (Only if user is author)
     // We match the project by ID and the user by ID, and ensure they are connected.
     const result = await session.run(
       `

@@ -60,6 +60,8 @@ function HomeContent() {
   // UI States for Modals & Notifications
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
+  const [deleteCallModalOpen, setDeleteCallModalOpen] = useState(false);
+  const [callToDelete, setCallToDelete] = useState<string | null>(null);
   const [notification, setNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
 
   // Auto-hide notification after 3 seconds
@@ -182,6 +184,38 @@ function HomeContent() {
     } finally {
       setDeleteModalOpen(false);
       setProjectToDelete(null);
+    }
+  };
+
+  const handleDeleteCall = (callId: string) => {
+    setCallToDelete(callId);
+    setDeleteCallModalOpen(true);
+  };
+
+  const confirmDeleteCall = async () => {
+    if (!callToDelete) return;
+
+    try {
+      await api.delete(`/calls/${callToDelete}`);
+      
+      // Update state to remove the deleted call
+      setFundingCalls(prev => prev.filter(c => c.id !== callToDelete));
+      
+      // Also update search results if they are being shown
+      if (searchResults && searchResults.combined) {
+         setSearchResults((prev: any) => ({
+            ...prev,
+            combined: prev.combined.filter((item: any) => (item.id !== callToDelete))
+         }));
+      }
+
+      setNotification({ message: 'Funding call deleted successfully.', type: 'success' });
+    } catch (error) {
+      console.error('Delete error:', error);
+      setNotification({ message: 'Failed to delete funding call.', type: 'error' });
+    } finally {
+      setDeleteCallModalOpen(false);
+      setCallToDelete(null);
     }
   };
 
@@ -498,9 +532,9 @@ function HomeContent() {
                   </a>
                 </div>
                 
-                {projects.filter(project => project.authorName === user.name).length > 0 ? (
+                {projects.filter(project => project.authorId === user.userId).length > 0 ? (
                   <div className="grid gap-6">
-                    {projects.filter(project => project.authorName === user.name).map((project) => (
+                    {projects.filter(project => project.authorId === user.userId).map((project) => (
                       <div key={project.projectId || project.id} className="group bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-gray-700 hover:-translate-y-1 relative">
                         <div className="flex justify-between items-start mb-4">
                           <div className="pr-10">
@@ -608,9 +642,9 @@ function HomeContent() {
                   </a>
                 </div>
 
-                {fundingCalls.filter(call => call.institutionName === user.name || call.institutionName === user.institutionName).length > 0 ? (
+                {fundingCalls.filter(call => call.authorId === user.userId).length > 0 ? (
                   <div className="grid gap-6">
-                    {fundingCalls.filter(call => call.institutionName === user.name || call.institutionName === user.institutionName).map((call) => (
+                    {fundingCalls.filter(call => call.authorId === user.userId).map((call) => (
                       <div key={call.id} className="group bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-gray-700 hover:-translate-y-1 relative">
                         <div className="flex justify-between items-start mb-4">
                           <div className="pr-10">
@@ -637,7 +671,7 @@ function HomeContent() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                if (window.confirm('Are you sure you want to delete this funding call?')) alert('Delete functionality will be implemented');
+                                handleDeleteCall(call.id);
                               }}
                               className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-full transition-all"
                               title="Delete Call"
@@ -650,17 +684,40 @@ function HomeContent() {
                         <p className="text-gray-600 dark:text-gray-300 mb-4 line-clamp-3 leading-relaxed">
                           {call.description || 'No description available'}
                         </p>
-                        <div className="grid grid-cols-2 gap-4 text-sm text-gray-600 dark:text-gray-300 pt-4 border-t border-gray-100 dark:border-gray-700">
-                          <div className="flex items-center">
-                            <svg className="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+
+                        {/* Keywords Display */}
+                        {call.keywords && call.keywords.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mb-4">
+                            {call.keywords.map((keyword: string, idx: number) => (
+                              <span key={idx} className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 rounded-md">
+                                #{keyword}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-700 flex-wrap gap-2">
+                          <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
+                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
                             <span className="font-medium">{call.institutionName || 'Unknown'}</span>
                           </div>
-                          {call.deadline && (
-                            <div className="flex items-center">
-                              <svg className="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                              <span className="font-medium">Deadline: {formatDate(call.deadline)}</span>
-                            </div>
-                          )}
+                          
+                          <div className="flex items-center gap-4">
+                            {call.deadline && (
+                              <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
+                                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                <span>Deadline: {formatDate(call.deadline)}</span>
+                              </div>
+                            )}
+                            
+                            {/* Budget Display */}
+                            {call.budget && (
+                               <div className="flex items-center text-sm text-gray-600 dark:text-gray-300 bg-green-50 dark:bg-green-900/20 px-3 py-1 rounded-full border border-green-100 dark:border-green-800">
+                                  <span className="mr-1">💰</span>
+                                  <span className="font-semibold text-green-700 dark:text-green-400">{Number(call.budget).toLocaleString()} TL</span>
+                               </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -781,17 +838,41 @@ function HomeContent() {
                           </div>
                         </div>
                         <p className="text-gray-600 dark:text-gray-300 mb-4 line-clamp-3 leading-relaxed">{call.description || 'No description available'}</p>
-                        <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-700">
+                        
+                        {/* Keywords Display */}
+                        {call.keywords && call.keywords.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mb-4">
+                            {call.keywords.map((keyword: string, idx: number) => (
+                              <span key={idx} className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 rounded-md">
+                                #{keyword}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-700 flex-wrap gap-2">
                           <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
                             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
                             <span className="font-medium">{call.institutionName || 'Unknown Institution'}</span>
+                            {call.authorName && <span className="ml-2 text-xs text-gray-400">({call.authorName})</span>}
                           </div>
-                          {call.deadline && (
-                            <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
-                              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                              <span>Deadline: {formatDate(call.deadline)}</span>
-                            </div>
-                          )}
+                          
+                          <div className="flex items-center gap-4">
+                            {call.deadline && (
+                              <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
+                                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                <span>Deadline: {formatDate(call.deadline)}</span>
+                              </div>
+                            )}
+                            
+                            {/* Budget Display */}
+                            {call.budget && (
+                               <div className="flex items-center text-sm text-gray-600 dark:text-gray-300 bg-green-50 dark:bg-green-900/20 px-3 py-1 rounded-full border border-green-100 dark:border-green-800">
+                                  <span className="mr-1">💰</span>
+                                  <span className="font-semibold text-green-700 dark:text-green-400">{Number(call.budget).toLocaleString()} TL</span>
+                               </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -911,6 +992,39 @@ function HomeContent() {
                 </button>
                 <button
                   onClick={confirmDelete}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors shadow-lg shadow-red-500/30"
+                >
+                  Yes, Delete It
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- DELETE CALL CONFIRMATION MODAL --- */}
+      {deleteCallModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 transform transition-all scale-100">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/30 mb-4">
+                <svg className="h-6 w-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Delete Funding Call?</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                Are you sure you want to delete this funding call? This action cannot be undone.
+              </p>
+              <div className="flex justify-center space-x-3">
+                <button
+                  onClick={() => setDeleteCallModalOpen(false)}
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg font-medium transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDeleteCall}
                   className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors shadow-lg shadow-red-500/30"
                 >
                   Yes, Delete It

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import driver from '@/lib/neo4j';
-import { Session } from 'neo4j-driver';
+import neo4j, { Session } from 'neo4j-driver';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { v4 as uuidv4 } from 'uuid';
 import jwt from 'jsonwebtoken';
@@ -17,18 +17,20 @@ export async function GET() {
 
     const result = await session.run(
       `MATCH (p:Project)<-[:IS_AUTHOR_OF]-(a:Academic) 
-       RETURN p, a.name as authorName 
+       RETURN p, a.name as authorName, a.userId as authorId
        ORDER BY p.createdAt DESC 
        LIMIT 20`
     );
 
     const projects = result.records.map((record) => {
       const projectProps = record.get('p').properties;
-      const { embedding, ...projectData } = projectProps; // Exclude embedding from response
+      const { embedding, budget, ...projectData } = projectProps; // Exclude embedding from response
       
       return {
           ...projectData,
-          authorName: record.get('authorName')
+          budget: neo4j.isInt(budget) ? budget.toNumber() : budget,
+          authorName: record.get('authorName'),
+          authorId: record.get('authorId')
       };
     });
 
@@ -203,7 +205,7 @@ export async function POST(req: Request) {
       RETURN p.projectId AS projectId, p.title AS title
       `,
       {
-        userId: decodedUser.userId, // User ID from token
+        userId: decodedUser.userId, // User ID from token (Verified)
         projectId,
         title,
         summary,
@@ -211,7 +213,7 @@ export async function POST(req: Request) {
         startDate: startDate || null,
         endDate: endDate || null,
         keywords: keywords || [],
-        budget: parsedBudget,
+        budget: parsedBudget !== null ? neo4j.int(parsedBudget) : null,
         embedding: embeddingVector,
         now
       }

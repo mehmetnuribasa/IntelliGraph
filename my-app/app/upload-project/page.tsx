@@ -72,12 +72,12 @@ export default function UploadProjectPage() {
     }
   };
 
-  if (!user || user.role !== 'ACADEMIC') {
+  if (!user || (user.role !== 'ACADEMIC' && user.role !== 'FUNDING_MANAGER')) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-blue-900 flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Access Denied</h1>
-          <p className="text-gray-600 dark:text-gray-300">Only academics can upload projects.</p>
+          <p className="text-gray-600 dark:text-gray-300">Only academics and funding managers can upload projects.</p>
         </div>
       </div>
     );
