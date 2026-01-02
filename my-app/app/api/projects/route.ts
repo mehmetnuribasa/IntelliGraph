@@ -88,7 +88,7 @@ export async function POST(req: Request) {
 
     // INPUT VALIDATION
     const body = await req.json();
-    const { title, summary, status, startDate, endDate } = body;
+    const { title, summary, status, startDate, endDate, keywords, budget } = body;
 
     const errors: Record<string, string[]> = {};
 
@@ -100,6 +100,22 @@ export async function POST(req: Request) {
     // Summary Check (Important for AI)
     if (!summary || typeof summary !== 'string' || summary.length < 10) {
         errors.summary = ['Summary must be at least 10 characters long to generate embeddings.'];
+    }
+
+    // Keywords Check (Optional but must be array if present)
+    if (keywords && !Array.isArray(keywords)) {
+        errors.keywords = ['Keywords must be an array of strings.'];
+    }
+
+    // Budget Check (Optional)
+    let parsedBudget = null;
+    if (budget) {
+        const numBudget = Number(budget);
+        if (isNaN(numBudget) || numBudget < 0) {
+            errors.budget = ['Budget must be a valid positive number.'];
+        } else {
+            parsedBudget = numBudget;
+        }
     }
 
     // Status Check (Optional whitelist)
@@ -175,6 +191,8 @@ export async function POST(req: Request) {
         status: $status,
         startDate: $startDate,
         endDate: $endDate,
+        keywords: $keywords,
+        budget: $budget,
         embedding: $embedding, // <-- Saving the vector here
         createdAt: datetime($now)
       })
@@ -192,6 +210,8 @@ export async function POST(req: Request) {
         status: status || 'Planning',
         startDate: startDate || null,
         endDate: endDate || null,
+        keywords: keywords || [],
+        budget: parsedBudget,
         embedding: embeddingVector,
         now
       }

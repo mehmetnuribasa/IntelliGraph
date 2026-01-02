@@ -203,12 +203,26 @@ export default function ProfilePage() {
                       <p className="text-gray-600 dark:text-gray-300 mb-3 line-clamp-2">
                         {project.summary || project.description || 'No description available'}
                       </p>
+
+                      {/* Keywords Display */}
+                      {project.keywords && project.keywords.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mb-3">
+                          {project.keywords.map((keyword: string, idx: number) => (
+                            <span key={idx} className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 rounded-md">
+                              #{keyword}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
                       <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
                         <span>{project.startDate ? formatDate(project.startDate) : 'No date'}</span>
                         {project.budget && (
                           <>
                             <span className="mx-2">•</span>
-                            <span>${project.budget.toLocaleString()}</span>
+                            <span className="flex items-center text-green-600 dark:text-green-400 font-medium">
+                              💰 {Number(project.budget).toLocaleString()}
+                            </span>
                           </>
                         )}
                       </div>

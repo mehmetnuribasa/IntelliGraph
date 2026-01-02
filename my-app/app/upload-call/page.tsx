@@ -9,7 +9,6 @@ export default function UploadCallPage() {
   const [call, setCall] = useState({
     title: '',
     description: '',
-    eligibility: '',
     fundingAmount: '',
     deadline: '',
     categories: [] as string[],
@@ -36,6 +35,22 @@ export default function UploadCallPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate funding amount
+    if (isNaN(Number(call.fundingAmount)) || Number(call.fundingAmount) < 0) {
+      alert('Please enter a valid positive number for the funding amount.');
+      return;
+    }
+
+    // Validate website URL if provided
+    if (call.website && call.website.trim() !== '') {
+      try {
+        new URL(call.website);
+      } catch (_) {
+        alert('Please enter a valid URL for the website (including http:// or https://).');
+        return;
+      }
+    }
 
     // Validate deadline
     const selectedDate = new Date(call.deadline);
@@ -66,7 +81,6 @@ export default function UploadCallPage() {
       setCall({
         title: '',
         description: '',
-        eligibility: '',
         fundingAmount: '',
         deadline: '',
         categories: [],
@@ -141,11 +155,12 @@ export default function UploadCallPage() {
                   Total Funding Amount (TL) *
                 </label>
                 <input
-                  type="text"
+                  type="number"
+                  min="0"
                   value={call.fundingAmount}
                   onChange={(e) => setCall(prev => ({ ...prev, fundingAmount: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                  placeholder="e.g., 50,000 - 500,000 TL per project"
+                  placeholder="e.g., 50000"
                   required
                 />
               </div>
@@ -163,20 +178,6 @@ export default function UploadCallPage() {
                   required
                 />
               </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Eligibility Criteria *
-              </label>
-              <textarea
-                value={call.eligibility}
-                onChange={(e) => setCall(prev => ({ ...prev, eligibility: e.target.value }))}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                placeholder="Who can apply? Academic requirements, institutional requirements, etc..."
-                required
-              />
             </div>
 
             <div>
