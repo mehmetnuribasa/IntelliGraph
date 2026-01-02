@@ -12,6 +12,7 @@
     "@google/generative-ai": "^0.24.1",
     "axios": "^1.13.2",
     "bcryptjs": "^3.0.3",
+    "dotenv": "^17.2.3",
     "jsonwebtoken": "^9.0.2",
     "jwt-decode": "^4.0.0",
     "neo4j-driver": "^6.0.0",
@@ -35,6 +36,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.0.1",
     "tailwindcss": "^4",
+    "tsx": "^4.21.0",
     "typescript": "^5"
   }
 }

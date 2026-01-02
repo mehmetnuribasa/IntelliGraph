@@ -16,6 +16,7 @@ export default function UploadProjectPage() {
     startDate: '',
     endDate: '',
     budget: '',
+    website: '',
     collaborators: '',
     publications: '',
     status: 'Active'
@@ -41,7 +42,7 @@ export default function UploadProjectPage() {
       }
 
       // Prepare data according to API expectations
-      // API expects: title, summary, status, startDate, endDate, keywords, budget
+      // API expects: title, summary, status, startDate, endDate, keywords, budget, website
       const projectData = {
         title: project.title,
         summary: project.summary || project.title,
@@ -49,7 +50,8 @@ export default function UploadProjectPage() {
         startDate: project.startDate || null,
         endDate: project.endDate || null,
         keywords: project.keywords ? project.keywords.split(',').map(k => k.trim()).filter(k => k.length > 0) : [],
-        budget: project.budget || null
+        budget: project.budget || null,
+        website: project.website || null
       };
 
       const response = await api.post('/projects', projectData);
@@ -172,7 +174,7 @@ export default function UploadProjectPage() {
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Start Date *
@@ -210,6 +212,19 @@ export default function UploadProjectPage() {
                   onChange={(e) => setProject(prev => ({ ...prev, budget: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   placeholder="0"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Website
+                </label>
+                <input
+                  type="url"
+                  value={project.website}
+                  onChange={(e) => setProject(prev => ({ ...prev, website: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  placeholder="https://..."
                 />
               </div>
             </div>

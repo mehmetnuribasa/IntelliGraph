@@ -29,6 +29,7 @@ export async function GET() {
       return {
           ...projectData,
           budget: neo4j.isInt(budget) ? budget.toNumber() : budget,
+          website: projectProps.website || null,
           authorName: record.get('authorName'),
           authorId: record.get('authorId')
       };
@@ -90,7 +91,7 @@ export async function POST(req: Request) {
 
     // INPUT VALIDATION
     const body = await req.json();
-    const { title, summary, status, startDate, endDate, keywords, budget } = body;
+    const { title, summary, status, startDate, endDate, keywords, budget, website } = body;
 
     const errors: Record<string, string[]> = {};
 
@@ -117,6 +118,15 @@ export async function POST(req: Request) {
             errors.budget = ['Budget must be a valid positive number.'];
         } else {
             parsedBudget = numBudget;
+        }
+    }
+
+    // Website Validation (Optional)
+    if (website && typeof website === 'string') {
+        try {
+            new URL(website);
+        } catch (_) {
+            errors.website = ['Website must be a valid URL.'];
         }
     }
 
@@ -195,6 +205,8 @@ export async function POST(req: Request) {
         endDate: $endDate,
         keywords: $keywords,
         budget: $budget,
+        website: $website,
+        isScraped: false,
         embedding: $embedding, // <-- Saving the vector here
         createdAt: datetime($now)
       })
@@ -213,6 +225,7 @@ export async function POST(req: Request) {
         startDate: startDate || null,
         endDate: endDate || null,
         keywords: keywords || [],
+        website: website || null,
         budget: parsedBudget !== null ? neo4j.int(parsedBudget) : null,
         embedding: embeddingVector,
         now

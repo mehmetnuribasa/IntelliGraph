@@ -101,6 +101,8 @@ export async function POST(req: Request) {
           name: $name,
           passwordHash: $passwordHash,
           role: 'ACADEMIC',
+          isRegistered: true,
+          source: 'PLATFORM',
           createdAt: datetime($createdAt)
       }) 
       SET a += $optionalProps
