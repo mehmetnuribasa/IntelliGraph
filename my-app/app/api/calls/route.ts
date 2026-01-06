@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import driver from '@/lib/neo4j';
-import { Session } from 'neo4j-driver';
+import neo4j, { Session } from 'neo4j-driver';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { v4 as uuidv4 } from 'uuid';
 import jwt from 'jsonwebtoken';
@@ -24,25 +24,39 @@ export async function GET() {
     const result = await session.run(
       `
       MATCH (c:Call)<-[:OPENS_CALL]-(i:Institution)
+      OPTIONAL MATCH (u:Academic)-[:CREATED_CALL]->(c)
       RETURN c.callId AS id, 
              c.title AS title, 
              c.description AS description, 
              c.deadline AS deadline,
              c.status AS status,
-             i.name AS institutionName
+             c.budget AS budget,
+             c.website AS website,
+             c.keywords AS keywords,
+             i.name AS institutionName,
+             u.name AS authorName,
+             u.userId AS authorId
       ORDER BY c.createdAt DESC
       LIMIT 20
       `
     );
 
-    const calls = result.records.map(record => ({
-      id: record.get('id'),
-      title: record.get('title'),
-      description: record.get('description'),
-      deadline: record.get('deadline'),
-      status: record.get('status'),
-      institutionName: record.get('institutionName')
-    }));
+    const calls = result.records.map(record => {
+      const budgetVal = record.get('budget');
+      return {
+        id: record.get('id'),
+        title: record.get('title'),
+        description: record.get('description'),
+        deadline: record.get('deadline'),
+        status: record.get('status'),
+        budget: neo4j.isInt(budgetVal) ? budgetVal.toNumber() : budgetVal,
+        website: record.get('website'),
+        keywords: record.get('keywords'),
+        institutionName: record.get('institutionName'),
+        authorName: record.get('authorName'),
+        authorId: record.get('authorId')
+      };
+    });
 
     return NextResponse.json(calls, { status: 200 });
   } catch (error) {
@@ -92,7 +106,7 @@ export async function POST(req: Request) {
 
     // INPUT VALIDATION
     const body = await req.json();
-    const { title, description, deadline, status } = body;
+    const { title, description, deadline, status, budget, website, keywords } = body;
 
     const errors: Record<string, string[]> = {};
 
@@ -114,6 +128,32 @@ export async function POST(req: Request) {
 
     if (status && !['Open', 'Closed', 'Paused'].includes(status)) {
         errors.status = ['Status must be one of: Open, Closed, Paused.'];
+    }
+
+    if (!keywords || !Array.isArray(keywords) || keywords.length === 0) {
+        errors.keywords = ['At least one keyword is required.'];
+    }
+
+    // Budget Validation (Mandatory)
+    let parsedBudget = null;
+    if (budget === undefined || budget === null || budget === '') {
+        errors.budget = ['Budget is required.'];
+    } else {
+        const numBudget = Number(budget);
+        if (isNaN(numBudget) || numBudget < 0) {
+            errors.budget = ['Budget must be a valid positive number.'];
+        } else {
+            parsedBudget = numBudget;
+        }
+    }
+
+    // Website Validation (Optional)
+    if (website && typeof website === 'string') {
+        try {
+            new URL(website);
+        } catch (_) {
+            errors.website = ['Website must be a valid URL.'];
+        }
     }
 
     if (Object.keys(errors).length > 0) {
@@ -156,6 +196,9 @@ export async function POST(req: Request) {
          deadline: $deadline,
          embedding: $embedding,
          status: $status,
+         budget: $budget,
+         website: $website,
+         keywords: $keywords,
          createdAt: datetime($now)
       })
 
@@ -175,6 +218,9 @@ export async function POST(req: Request) {
         description,
         deadline,
         status: status || 'Open',
+        budget: parsedBudget !== null ? neo4j.int(parsedBudget) : null,
+        keywords: keywords || [],
+        website: website || null,
         embedding: embeddingVector,
         now
       }

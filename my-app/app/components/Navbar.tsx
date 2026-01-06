@@ -42,8 +42,24 @@ export default function Navbar() {
             <nav className="hidden md:flex items-center space-x-8">
               {user && (
                 <>
+                  <Link 
+                    href="/"
+                    className="text-sm font-medium text-gray-600 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400 transition-colors relative group"
+                  >
+                    Home
+                    <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-600 transition-all group-hover:w-full"></span>
+                  </Link>
+
+                  <Link 
+                    href={`/profile/${user.userId}`}
+                    className="text-sm font-medium text-gray-600 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400 transition-colors relative group"
+                  >
+                    My Profile
+                    <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-600 transition-all group-hover:w-full"></span>
+                  </Link>
+
                   {/* Role-based navigation for logged-in users */}
-                  {user.role === 'ACADEMIC' && (
+                  {(user.role === 'ACADEMIC' || user.role === 'FUNDING_MANAGER') && (
                     <Link href="/upload-project" className="text-sm font-medium text-gray-600 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400 transition-colors relative group">
                       Add Project
                       <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-600 transition-all group-hover:w-full"></span>
@@ -56,22 +72,6 @@ export default function Navbar() {
                       <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-600 transition-all group-hover:w-full"></span>
                     </Link>
                   )}
-                  
-                  <Link 
-                    href={`/profile/${user.userId}`}
-                    className="text-sm font-medium text-gray-600 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400 transition-colors relative group"
-                  >
-                    My Profile
-                    <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-600 transition-all group-hover:w-full"></span>
-                  </Link>
-
-                  <Link 
-                    href="/?tab=my-content"
-                    className="text-sm font-medium text-gray-600 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400 transition-colors relative group"
-                  >
-                    My {user.role === 'ACADEMIC' ? 'Projects' : 'Funding Calls'}
-                    <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-600 transition-all group-hover:w-full"></span>
-                  </Link>
                 </>
               )}
             </nav>

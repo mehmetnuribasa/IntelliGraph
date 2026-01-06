@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import driver from '@/lib/neo4j';
-import { Session } from 'neo4j-driver';
+import neo4j, { Session } from 'neo4j-driver';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { v4 as uuidv4 } from 'uuid';
 import jwt from 'jsonwebtoken';
@@ -17,18 +17,21 @@ export async function GET() {
 
     const result = await session.run(
       `MATCH (p:Project)<-[:IS_AUTHOR_OF]-(a:Academic) 
-       RETURN p, a.name as authorName 
+       RETURN p, a.name as authorName, a.userId as authorId
        ORDER BY p.createdAt DESC 
        LIMIT 20`
     );
 
     const projects = result.records.map((record) => {
       const projectProps = record.get('p').properties;
-      const { embedding, ...projectData } = projectProps; // Exclude embedding from response
+      const { embedding, budget, ...projectData } = projectProps; // Exclude embedding from response
       
       return {
           ...projectData,
-          authorName: record.get('authorName')
+          budget: neo4j.isInt(budget) ? budget.toNumber() : budget,
+          website: projectProps.website || null,
+          authorName: record.get('authorName'),
+          authorId: record.get('authorId')
       };
     });
 
@@ -88,7 +91,7 @@ export async function POST(req: Request) {
 
     // INPUT VALIDATION
     const body = await req.json();
-    const { title, summary, status, startDate, endDate } = body;
+    const { title, summary, status, startDate, endDate, keywords, budget, website } = body;
 
     const errors: Record<string, string[]> = {};
 
@@ -100,6 +103,31 @@ export async function POST(req: Request) {
     // Summary Check (Important for AI)
     if (!summary || typeof summary !== 'string' || summary.length < 10) {
         errors.summary = ['Summary must be at least 10 characters long to generate embeddings.'];
+    }
+
+    // Keywords Check (Optional but must be array if present)
+    if (keywords && !Array.isArray(keywords)) {
+        errors.keywords = ['Keywords must be an array of strings.'];
+    }
+
+    // Budget Check (Optional)
+    let parsedBudget = null;
+    if (budget) {
+        const numBudget = Number(budget);
+        if (isNaN(numBudget) || numBudget < 0) {
+            errors.budget = ['Budget must be a valid positive number.'];
+        } else {
+            parsedBudget = numBudget;
+        }
+    }
+
+    // Website Validation (Optional)
+    if (website && typeof website === 'string') {
+        try {
+            new URL(website);
+        } catch (_) {
+            errors.website = ['Website must be a valid URL.'];
+        }
     }
 
     // Status Check (Optional whitelist)
@@ -175,6 +203,10 @@ export async function POST(req: Request) {
         status: $status,
         startDate: $startDate,
         endDate: $endDate,
+        keywords: $keywords,
+        budget: $budget,
+        website: $website,
+        isScraped: false,
         embedding: $embedding, // <-- Saving the vector here
         createdAt: datetime($now)
       })
@@ -185,13 +217,16 @@ export async function POST(req: Request) {
       RETURN p.projectId AS projectId, p.title AS title
       `,
       {
-        userId: decodedUser.userId, // User ID from token
+        userId: decodedUser.userId, // User ID from token (Verified)
         projectId,
         title,
         summary,
         status: status || 'Planning',
         startDate: startDate || null,
         endDate: endDate || null,
+        keywords: keywords || [],
+        website: website || null,
+        budget: parsedBudget !== null ? neo4j.int(parsedBudget) : null,
         embedding: embeddingVector,
         now
       }

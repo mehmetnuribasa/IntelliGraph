@@ -99,7 +99,7 @@ export async function POST(req: Request) {
         MERGE (s:Session {token: $refreshToken})
         ON CREATE SET 
             s.createdAt = datetime(),
-            s.expiresAt = datetime() + duration('PT3M'), // TEMPORARILY (should be PT168H for 7 days)
+            s.expiresAt = datetime() + duration('P7D'), 
             s.userAgent = $userAgent
         
         // Link session to user

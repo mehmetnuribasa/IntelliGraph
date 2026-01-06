@@ -72,7 +72,7 @@ export async function POST(req: Request) {
     const newAccessToken = jwt.sign(
       userPayload,
       ACCESS_TOKEN_SECRET,
-      { expiresIn: '1m' } // TEMPORARILY (should be longer in production)
+      { expiresIn: '15m' } // TEMPORARILY (should be longer in production)
     );
 
     return NextResponse.json(
