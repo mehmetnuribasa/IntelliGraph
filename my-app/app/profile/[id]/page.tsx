@@ -16,6 +16,12 @@ export default function ProfilePage() {
   const [fundingCalls, setFundingCalls] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Helper to remove HTML tags
+  const stripHtml = (html: string) => {
+    if (!html) return '';
+    return html.replace(/<[^>]*>?/gm, '');
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -30,7 +36,12 @@ export default function ProfilePage() {
           // Fetch projects
           const projectsRes = await api.get('/projects');
           // Filter projects for this user
-          const userProjects = projectsRes.data.filter((p: any) => p.authorId === foundProfile.id);
+          const userProjects = projectsRes.data.filter((p: any) => {
+             if (p.authorIds && Array.isArray(p.authorIds)) {
+                return p.authorIds.includes(foundProfile.id);
+             }
+             return p.authorId === foundProfile.id;
+          });
           setProjects(userProjects);
 
           // Fetch funding calls if user is a funding manager
@@ -207,8 +218,8 @@ export default function ProfilePage() {
                           {project.status || 'Active'}
                         </span>
                       </div>
-                      <p className="text-gray-600 dark:text-gray-300 mb-3 line-clamp-2">
-                        {project.summary || project.description || 'No description available'}
+                      <p className="text-gray-600 dark:text-gray-300 mb-3 line-clamp-5">
+                        {stripHtml(project.summary || project.description || 'No description available')}
                       </p>
 
                       {/* Keywords Display */}
@@ -274,7 +285,7 @@ export default function ProfilePage() {
                           </span>
                         </div>
                         <p className="text-gray-600 dark:text-gray-300 mb-3 line-clamp-2">
-                          {call.description || 'No description available'}
+                        {stripHtml(call.description || 'No description available')}
                         </p>
 
                         {/* Keywords Display */}

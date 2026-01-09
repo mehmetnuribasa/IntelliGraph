@@ -16,8 +16,9 @@ export async function GET() {
     session = driver.session();
 
     const result = await session.run(
-      `MATCH (p:Project)<-[:IS_AUTHOR_OF]-(a:Academic) 
-       RETURN p, a.name as authorName, a.userId as authorId
+      `MATCH (p:Project)
+       OPTIONAL MATCH (p)<-[:IS_AUTHOR_OF]-(a:Academic) 
+       RETURN p, collect(a.name) as authorNames, collect(a.userId) as authorIds
        ORDER BY p.createdAt DESC 
        LIMIT 20`
     );
@@ -25,13 +26,16 @@ export async function GET() {
     const projects = result.records.map((record) => {
       const projectProps = record.get('p').properties;
       const { embedding, budget, ...projectData } = projectProps; // Exclude embedding from response
+      const authorNames = record.get('authorNames');
+      const authorIds = record.get('authorIds');
       
       return {
           ...projectData,
           budget: neo4j.isInt(budget) ? budget.toNumber() : budget,
           website: projectProps.website || null,
-          authorName: record.get('authorName'),
-          authorId: record.get('authorId')
+          authorName: authorNames && authorNames.length > 0 ? authorNames.join(', ') : 'Unknown Author',
+          authorId: authorIds && authorIds.length > 0 ? authorIds[0] : null,
+          authorIds: authorIds || [] // Include all author IDs for filtering
       };
     });
 

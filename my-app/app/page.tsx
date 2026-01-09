@@ -34,6 +34,12 @@ function HomeContent() {
     }
   };
 
+  // Helper to remove HTML tags
+  const stripHtml = (html: string) => {
+    if (!html) return '';
+    return html.replace(/<[^>]*>?/gm, '');
+  };
+
   
   // State Management
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
@@ -466,7 +472,7 @@ function HomeContent() {
                             </span>
                           )}
                         </div>
-                        <p className="text-gray-600 dark:text-gray-300 mb-4 line-clamp-3 leading-relaxed">
+                        <p className="text-gray-600 dark:text-gray-300 mb-4 line-clamp-10 leading-relaxed">
                           {item.description || 'No description available'}
                         </p>
                         <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-700">
@@ -571,7 +577,7 @@ function HomeContent() {
                           </div>
                         </div>
                         
-                        <p className="text-gray-600 dark:text-gray-300 mb-4 line-clamp-3 leading-relaxed">
+                        <p className="text-gray-600 dark:text-gray-300 mb-4 line-clamp-10 leading-relaxed">
                           {project.summary || project.description || 'No description available'}
                         </p>
 
@@ -703,7 +709,7 @@ function HomeContent() {
                           </div>
                         </div>
                         
-                        <p className="text-gray-600 dark:text-gray-300 mb-4 line-clamp-3 leading-relaxed">
+                        <p className="text-gray-600 dark:text-gray-300 mb-4 line-clamp-10 leading-relaxed">
                           {call.description || 'No description available'}
                         </p>
 
@@ -796,7 +802,7 @@ function HomeContent() {
                   </div>
                 ) : projects.length > 0 ? (
                   <div className="grid gap-6">
-                    {projects.map((project: any) => (
+                    {Array.from(new Map(projects.map((p: any) => [p.projectId || p.id, p])).values()).map((project: any) => (
                       <div key={project.projectId || project.id} className="group bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-gray-700 hover:-translate-y-1">
                         <div className="flex justify-between items-start mb-4">
                           <h4 className="text-xl font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{project.title}</h4>
@@ -804,7 +810,7 @@ function HomeContent() {
                             {project.status || 'Active'}
                           </span>
                         </div>
-                        <p className="text-gray-600 dark:text-gray-300 mb-4 line-clamp-3 leading-relaxed">{project.summary || 'No summary available'}</p>
+                        <p className="text-gray-600 dark:text-gray-300 mb-4 line-clamp-10 leading-relaxed">{stripHtml(project.summary) || 'No summary available'}</p>
                         
                         {/* Keywords Display */}
                         {project.keywords && project.keywords.length > 0 && (
@@ -901,7 +907,7 @@ function HomeContent() {
                             </span>
                           </div>
                         </div>
-                        <p className="text-gray-600 dark:text-gray-300 mb-4 line-clamp-3 leading-relaxed">{call.description || 'No description available'}</p>
+                        <p className="text-gray-600 dark:text-gray-300 mb-4 line-clamp-10 leading-relaxed">{call.description || 'No description available'}</p>
                         
                         {/* Keywords Display */}
                         {call.keywords && call.keywords.length > 0 && (
