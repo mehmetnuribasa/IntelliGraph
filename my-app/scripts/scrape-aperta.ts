@@ -183,7 +183,7 @@ async function saveToNeo4j(project: ProjectData): Promise<boolean> {
 
     if (vector.length === 0) {
       console.log("⚠️ Vector empty, skipping.");
-      return;
+      return false;
     }
 
     const query = `
@@ -249,10 +249,10 @@ async function saveToNeo4j(project: ProjectData): Promise<boolean> {
 async function main() {
   console.log("🚀 Starting Aperta Bot...");
   
-  const TARGET_COUNT = 2; // How many NEW projects we want to add
+  const TARGET_COUNT = 5; // How many NEW projects we want to add
   let addedCount = 0;
   let currentPage = 1;
-  const BATCH_SIZE = 5; // How many to fetch per request
+  const BATCH_SIZE = 10; // How many to fetch per request
 
   while (addedCount < TARGET_COUNT) {
       const projects = await scrapeAperta(currentPage, BATCH_SIZE);
@@ -271,8 +271,10 @@ async function main() {
           if (saved) {
               addedCount++;
           }
-           // Wait slightly to avoid hammering DB/API too hard in loop
-           await new Promise(resolve => setTimeout(resolve, 200));
+           // RATE LIMIT PROTECTION (Free Tier: 15 RPM -> 1 request every 4 seconds)
+           // We set 4500ms to be safe.
+           console.log("⏳ Cooling down for 4.5s (API Rate Limit)...");
+           await new Promise(resolve => setTimeout(resolve, 4500));
       }
       
       currentPage++;
