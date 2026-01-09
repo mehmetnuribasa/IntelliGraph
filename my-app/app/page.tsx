@@ -34,6 +34,12 @@ function HomeContent() {
     }
   };
 
+  // Helper to remove HTML tags
+  const stripHtml = (html: string) => {
+    if (!html) return '';
+    return html.replace(/<[^>]*>?/gm, '');
+  };
+
   
   // State Management
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
@@ -112,40 +118,36 @@ function HomeContent() {
     // Start loading states
     setSearching(true);
     setLoadingAi(true);
-    setAiAnswer(null);
+    setAiAnswer(null); // Reset AI answer
+    setSearchResults(null); // Clear previous results
+    setSelectedTab('search-results'); // Switch tab immediately
     
     try {
-      // 1. Search API Request
-      const searchPromise = api.post(`/search`, { query: searchQuery });
+      // UNIFIED REQUEST: Call /api/research-assistant which now handles both search and AI summary
+      const response = await api.post('/research-assistant', { query: searchQuery });
+      const { answer, results } = response.data;
       
-      // 2. Chat API Request
-      const chatPromise = api.post('/chat', { query: searchQuery });
-      
-      // Wait for search results first and display them (User is not kept waiting)
-      const searchRes = await searchPromise;
-      
+      // Update Search Results UI
       setSearchResults({
-        combined: searchRes.data.results,
-        totalResults: searchRes.data.results.length
+        combined: results,
+        totalResults: results.length
       });
-      setSelectedTab('search-results');
-      setSearching(false);
-
-      // Continue waiting for AI answer after search is done
-      try {
-        const chatRes = await chatPromise;
-        setAiAnswer(chatRes.data.answer);
-      } catch (chatError) {
-        console.error("AI answer error:", chatError);
-        setAiAnswer(null); // Silently close the box on error
+      // Removed automatic tab switch here to allow background searching
+      
+      // Update AI Answer UI
+      // If the answer is empty (fallback), we might choose not to show it or show a specific message.
+      if (answer) {
+         setAiAnswer(answer);
+      } else {
+         setAiAnswer(null);
       }
 
     } catch (error) {
       console.error('Search error:', error);
-      alert('Search failed.');
-      setSearching(false);
+      alert('Search failed. Please try again.');
     } finally {
-      setLoadingAi(false); // AI loading ends here
+      setSearching(false);
+      setLoadingAi(false);
     }
   };
 
@@ -303,7 +305,7 @@ function HomeContent() {
         {/* Tabs */}
         <div className="flex justify-center mb-12">
           <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl p-1.5 shadow-xl border border-gray-200/50 dark:border-gray-700/50 inline-flex flex-wrap justify-center gap-2">
-            {searchResults && (
+            {(searchResults || searching) && (
               <button
                 onClick={() => setSelectedTab('search-results')}
                 className={`px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-200 ${
@@ -312,7 +314,14 @@ function HomeContent() {
                     : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50'
                 }`}
               >
-                Search Results ({searchResults.totalResults})
+                {searching ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    Searching...
+                  </span>
+                ) : (
+                  `Search Results (${searchResults?.totalResults || 0})`
+                )}
               </button>
             )}
             
@@ -392,7 +401,7 @@ function HomeContent() {
         <div className="w-full min-h-[400px]">
           {/* Main Content */}
           <div className="w-full">
-            {selectedTab === 'search-results' && searchResults && (
+            {selectedTab === 'search-results' && (searchResults || loadingAi) && (
               <div className="space-y-6 animate-fadeIn">
                 
                 {/* --- AI INTELLIGENT INSIGHTS BOX --- */}
@@ -437,6 +446,8 @@ function HomeContent() {
                 )}
 
                 {/* --- SEARCH RESULTS LIST --- */}
+                {searchResults && (
+                  <>
                 <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center">
                   <span className="bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 p-2 rounded-lg mr-3">
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
@@ -450,57 +461,100 @@ function HomeContent() {
                         <div className="flex justify-between items-start mb-4">
                           <div>
                             <span className={`inline-flex items-center px-3 py-1 text-xs font-medium rounded-full mb-3 ${
-                              item.type === 'Project' 
+                              (item.type === 'Project' || item.type === 'PROJECT') 
                                 ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' 
-                                : item.type === 'Call'
+                                : (item.type === 'Call' || item.type === 'FUNDING CALL')
                                 ? 'bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
                                 : 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300'
                             }`}>
-                              {item.type === 'Project' ? 'Research Project' : item.type === 'Call' ? 'Funding Call' : 'Researcher'}
+                              {(item.type === 'Project' || item.type === 'PROJECT') ? 'Research Project' : (item.type === 'Call' || item.type === 'FUNDING CALL') ? 'Funding Call' : 'Researcher'}
                             </span>
                             <h4 className="text-xl font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{item.title}</h4>
                           </div>
-                          {item.type !== 'Academic' && (
+                          {item.type !== 'Academic' && item.type !== 'RESEARCHER' && (
                             <span className={`text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wide ${getStatusColor(item.status)}`}>
                               {item.status || 'Active'}
                             </span>
                           )}
                         </div>
-                        <p className="text-gray-600 dark:text-gray-300 mb-4 line-clamp-3 leading-relaxed">
-                          {item.description || 'No description available'}
+                        <p className="text-gray-600 dark:text-gray-300 mb-4 line-clamp-none leading-relaxed" style={{ display: '-webkit-box', WebkitLineClamp: 10,  WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                          {(item.content || item.description) ? (item.content || item.description).replace(/<[^>]*>?/gm, '') : 'No description available'}
                         </p>
-                        <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-700">
+                        <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-700 flex-wrap gap-2">
                           <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
-                            {item.type === 'Project' ? (
-                              <>
-                                <span className="font-medium text-gray-900 dark:text-white">{item.subtitle || 'Unknown Researcher'}</span>
+                             {/* Source / Author Display */}
+                            {(item.type === 'Project' || item.type === 'PROJECT') ? (
+                              <div className="flex flex-col">
+                                <span className="font-medium text-gray-900 dark:text-white flex items-center">
+                                  <svg className="w-4 h-4 mr-1 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                                  {item.source || 'Unknown Researcher'}
+                                </span>
                                 {item.score && (
-                                  <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded text-xs font-medium">
+                                  <span className="mt-1 px-2 py-0.5 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded text-xs font-medium w-fit">
                                     {(item.score * 100).toFixed(0)}% Match
                                   </span>
                                 )}
-                              </>
-                            ) : item.type === 'Call' ? (
-                              <>
-                                <span className="font-medium text-gray-900 dark:text-white">{item.subtitle || 'Unknown Institution'}</span>
+                              </div>
+                            ) : (item.type === 'Call' || item.type === 'FUNDING CALL') ? (
+                              <div className="flex flex-col">
+                                <span className="font-medium text-gray-900 dark:text-white flex items-center">
+                                   <svg className="w-4 h-4 mr-1 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                                   {item.source || 'Unknown Institution'}
+                                </span>
                                 {item.score && (
-                                  <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded text-xs font-medium">
+                                  <span className="mt-1 px-2 py-0.5 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded text-xs font-medium w-fit">
                                     {(item.score * 100).toFixed(0)}% Match
                                   </span>
                                 )}
-                              </>
+                              </div>
                             ) : (
-                              <>
-                                <span className="font-medium text-gray-900 dark:text-white">{item.subtitle || 'Researcher'}</span>
-                                {item.score && (
-                                  <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded text-xs font-medium">
-                                    Match
-                                  </span>
-                                )}
-                              </>
+                              <div className="flex flex-col">
+                                <span className="font-medium text-gray-900 dark:text-white flex items-center">
+                                    <svg className="w-4 h-4 mr-1 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
+                                    {item.source || 'Researcher'}
+                                </span>
+                                <span className="mt-1 px-2 py-0.5 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded text-xs font-medium w-fit">
+                                    Expert Profile
+                                </span>
+                              </div>
                             )}
                           </div>
+
+                          <div className="flex items-center gap-3 flex-wrap justify-end mt-2 sm:mt-0">
+                                {/* METADATA BADGES */}
+                                {item.deadline && (
+                                    <div className="flex items-center text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-2.5 py-1 rounded-full border border-red-100 dark:border-red-800" title={`Deadline: ${formatDate(item.deadline)}`}>
+                                        <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                        <span className="font-semibold">{new Date(item.deadline).toLocaleDateString()}</span>
+                                    </div>
+                                )}
+
+                                {item.budget && (
+                                    <div className="flex items-center text-xs text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2.5 py-1 rounded-full border border-green-100 dark:border-green-800">
+                                        <span className="mr-1">💰</span>
+                                        <span className="font-semibold">{Number(item.budget).toLocaleString()} TL</span>
+                                    </div>
+                                )}
+                                
+                                {item.website && (
+                                    <a href={item.website} target="_blank" rel="noopener noreferrer" className="flex items-center text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2.5 py-1 rounded-full border border-blue-100 dark:border-blue-800 hover:underline" onClick={(e) => e.stopPropagation()}>
+                                        <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                                        Src
+                                    </a>
+                                )}
+                          </div>
                         </div>
+
+                        {/* Keywords Row */}
+                        {item.keywords && Array.isArray(item.keywords) && item.keywords.length > 0 && (
+                            <div className="mt-4 pt-3 flex flex-wrap gap-2 border-t border-gray-50 dark:border-gray-700/50">
+                                {item.keywords.slice(0, 4).map((k: string, i: number) => (
+                                    <span key={i} className="text-[10px] uppercase tracking-wider font-semibold text-gray-500 bg-gray-100 dark:bg-gray-700 dark:text-gray-400 px-2 py-0.5 rounded">
+                                        #{k}
+                                    </span>
+                                ))}
+                            </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -510,6 +564,8 @@ function HomeContent() {
                     <h4 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No results found</h4>
                     <p className="text-gray-500 dark:text-gray-400">We couldn't find anything matching "{searchQuery}". Try different keywords.</p>
                   </div>
+                )}
+                  </>
                 )}
               </div>
             )}
@@ -571,7 +627,7 @@ function HomeContent() {
                           </div>
                         </div>
                         
-                        <p className="text-gray-600 dark:text-gray-300 mb-4 line-clamp-3 leading-relaxed">
+                        <p className="text-gray-600 dark:text-gray-300 mb-4 line-clamp-10 leading-relaxed">
                           {project.summary || project.description || 'No description available'}
                         </p>
 
@@ -703,7 +759,7 @@ function HomeContent() {
                           </div>
                         </div>
                         
-                        <p className="text-gray-600 dark:text-gray-300 mb-4 line-clamp-3 leading-relaxed">
+                        <p className="text-gray-600 dark:text-gray-300 mb-4 line-clamp-10 leading-relaxed">
                           {call.description || 'No description available'}
                         </p>
 
@@ -796,7 +852,7 @@ function HomeContent() {
                   </div>
                 ) : projects.length > 0 ? (
                   <div className="grid gap-6">
-                    {projects.map((project: any) => (
+                    {Array.from(new Map(projects.map((p: any) => [p.projectId || p.id, p])).values()).map((project: any) => (
                       <div key={project.projectId || project.id} className="group bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-gray-700 hover:-translate-y-1">
                         <div className="flex justify-between items-start mb-4">
                           <h4 className="text-xl font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{project.title}</h4>
@@ -804,7 +860,7 @@ function HomeContent() {
                             {project.status || 'Active'}
                           </span>
                         </div>
-                        <p className="text-gray-600 dark:text-gray-300 mb-4 line-clamp-3 leading-relaxed">{project.summary || 'No summary available'}</p>
+                        <p className="text-gray-600 dark:text-gray-300 mb-4 line-clamp-10 leading-relaxed">{stripHtml(project.summary) || 'No summary available'}</p>
                         
                         {/* Keywords Display */}
                         {project.keywords && project.keywords.length > 0 && (
@@ -901,7 +957,7 @@ function HomeContent() {
                             </span>
                           </div>
                         </div>
-                        <p className="text-gray-600 dark:text-gray-300 mb-4 line-clamp-3 leading-relaxed">{call.description || 'No description available'}</p>
+                        <p className="text-gray-600 dark:text-gray-300 mb-4 line-clamp-10 leading-relaxed">{call.description || 'No description available'}</p>
                         
                         {/* Keywords Display */}
                         {call.keywords && call.keywords.length > 0 && (
