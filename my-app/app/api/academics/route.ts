@@ -31,7 +31,6 @@ export async function GET() {
              i.name AS institution,
              count(p) AS projectCount
       ORDER BY projectCount DESC, a.name ASC
-      LIMIT 50
       `
     );
 

@@ -6,11 +6,12 @@ import api from '@/lib/api';
 import { useRouter } from 'next/navigation';
 
 export default function SettingsPage() {
-  const { user, logout, isLoading: authLoading } = useAuth();
+  const { user, logout, refreshUser, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'profile' | 'password' | 'danger'>('profile');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
+  const [showDeleteModal, setShowDeleteModal] = useState(false); // Modal state added
 
   // Profile form state
   const [profileForm, setProfileForm] = useState({
@@ -48,6 +49,9 @@ export default function SettingsPage() {
         email: profileForm.email,
       });
 
+      // Refresh user data in context to update UI immediately
+      await refreshUser();
+
       setMessage({ type: 'success', text: 'Profile updated successfully! Please refresh to see changes.' });
       
     } catch (error: any) {
@@ -74,6 +78,12 @@ export default function SettingsPage() {
     setLoading(true);
     setMessage({ type: '', text: '' });
 
+    if (passwordForm.currentPassword === passwordForm.newPassword) {
+      setMessage({ type: 'error', text: 'New password cannot be the same as the current password.' });
+      setLoading(false);
+      return;
+    }
+
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
       setMessage({ type: 'error', text: 'New passwords do not match.' });
       setLoading(false);
@@ -98,7 +108,7 @@ export default function SettingsPage() {
     }
 
     try {
-      await api.put('/auth/change-password', {
+      await api.put('/academics/password', {
         currentPassword: passwordForm.currentPassword,
         newPassword: passwordForm.newPassword,
       });
@@ -121,13 +131,14 @@ export default function SettingsPage() {
   };
 
   const handleDeleteAccount = async () => {
-    if (!window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
-      return;
-    }
+    // Show modal instead of window.confirm
+    setShowDeleteModal(true);
+  };
 
+  const confirmDeleteAccount = async () => {
     setLoading(true);
     try {
-      await api.delete('/academics/profile');
+      await api.delete('/academics/account');
       logout();
       router.push('/');
     } catch (error: any) {
@@ -137,6 +148,7 @@ export default function SettingsPage() {
         text: error.response?.data?.message || 'Failed to delete account.' 
       });
       setLoading(false);
+      setShowDeleteModal(false); // Close modal on error
     }
   };
 
@@ -339,6 +351,42 @@ export default function SettingsPage() {
           </div>
         </div>
       </main>
+
+      {/* Delete Account Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md overflow-hidden transform transition-all scale-100 opacity-100">
+            <div className="p-6">
+              <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 dark:bg-red-900/30 rounded-full mb-4">
+                <svg className="w-6 h-6 text-red-600 dark:text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-center text-gray-900 dark:text-white mb-2">Delete Account?</h3>
+              <p className="text-gray-500 dark:text-gray-400 text-center mb-6">
+                Are you sure you want to delete your account? This action is permanent and cannot be undone. All your data will be lost.
+              </p>
+              
+              <div className="flex gap-3 justify-center">
+                <button
+                  onClick={() => setShowDeleteModal(false)}
+                  className="px-5 py-2.5 text-gray-700 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 rounded-lg font-medium transition-colors"
+                  disabled={loading}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDeleteAccount}
+                  className="px-5 py-2.5 text-white bg-red-600 hover:bg-red-700 rounded-lg font-medium transition-colors flex items-center gap-2"
+                  disabled={loading}
+                >
+                  {loading ? 'Deleting...' : 'Delete Account'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

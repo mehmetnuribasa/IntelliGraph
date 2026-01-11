@@ -607,7 +607,7 @@ function HomeContent() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                alert('Edit functionality will be implemented');
+                                router.push(`/edit-project/${project.projectId || project.id}`);
                               }}
                               className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-full transition-all"
                               title="Edit Project"
@@ -739,7 +739,7 @@ function HomeContent() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                alert('Edit functionality will be implemented');
+                                router.push(`/edit-call/${call.id}`);
                               }}
                               className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/30 rounded-full transition-all"
                               title="Edit Call"

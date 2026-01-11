@@ -1,9 +1,47 @@
 import { NextResponse } from 'next/server';
 import driver from '@/lib/neo4j';
 import { Session } from 'neo4j-driver';
-import jwt from 'jsonwebtoken';
 
-const ACCESS_TOKEN_SECRET = process.env.JWT_SECRET || 'access_secret';
+/**
+ * @api {get} /api/academics/profile
+ * @desc Gets current user profile info
+ */
+export async function GET(req: Request) {
+  let session: Session | null = null;
+  try {
+    const userId = req.headers.get('x-user-id');
+    if (!userId) {
+      return NextResponse.json({ message: 'User not authenticated' }, { status: 401 });
+    }
+
+    session = driver.session();
+    const result = await session.run(
+      `MATCH (a:Academic {userId: $userId})
+       RETURN a.userId as userId, a.name as name, a.email as email, a.role as role, a.title as title`,
+      { userId }
+    );
+
+    if (result.records.length === 0) {
+      return NextResponse.json({ message: 'User not found' }, { status: 404 });
+    }
+
+    const record = result.records[0];
+    const user = {
+      userId: record.get('userId'),
+      name: record.get('name'),
+      email: record.get('email'),
+      role: record.get('role'),
+      title: record.get('title')
+    };
+
+    return NextResponse.json(user, { status: 200 });
+  } catch (error) {
+    console.error('Get profile error:', error);
+    return NextResponse.json({ message: 'Server error' }, { status: 500 });
+  } finally {
+    if (session) await session.close();
+  }
+}
 
 /**
  * @api {put} /api/academics/profile
@@ -14,20 +52,10 @@ export async function PUT(req: Request) {
   let session: Session | null = null;
 
   try {
-    // Authentication
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ message: 'Unauthorized. Token required.' }, { status: 401 });
-    }
-
-    const token = authHeader.split(' ')[1];
-    let decodedUser: any;
-
-    try {
-      decodedUser = jwt.verify(token, ACCESS_TOKEN_SECRET);
-    } catch (err) {
-      return NextResponse.json({ message: 'Invalid or expired token.' }, { status: 401 });
-    }
+    // Auth handled by Middleware
+    const userId = req.headers.get('x-user-id');
+    const role = req.headers.get('x-user-role');
+    const decodedUser = { userId, role };
 
     // Input validation
     const body = await req.json();

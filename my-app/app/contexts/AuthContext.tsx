@@ -11,6 +11,7 @@ export interface User {
   email: string;
   name: string;
   role: string; // 'ACADEMIC', 'FUNDING_MANAGER', 'ADMIN'
+  title?: string;
 }
 
 // Decoded Token Interface
@@ -28,8 +29,9 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string, title?: string, bio?: string) => Promise<void>;
+  register: (name: string, email: string, password: string, title?: string) => Promise<void>;
   logout: () => void;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -39,23 +41,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
+  // Function to fetch fresh user data from API
+  const refreshUser = async () => {
+    try {
+      const response = await api.get('/academics/profile');
+      setUser(response.data);
+    } catch (error) {
+      console.error("Failed to refresh user data:", error);
+    }
+  };
+
   // Read token from localStorage on initial load
   useEffect(() => {
-    const initializeAuth = () => {
+    const initializeAuth = async () => {
       const accessToken = localStorage.getItem('accessToken');
 
       if (accessToken) {
         try {
-          // Decode token to get user info
+          // Decode token to get user info immediately
           const decoded: DecodedToken = jwtDecode(accessToken);
           
-          // Fill user state
+          // Fill user state with token data first (for speed)
           setUser({
             userId: decoded.userId,
             email: decoded.email,
             name: decoded.name,
             role: decoded.role,
           });
+
+          // Then fetch the latest data from the server
+          await refreshUser();
 
         } catch (error) {
           console.error("Token decode error:", error);
@@ -104,15 +119,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   // 3. REGISTER İŞLEMİ
-  const register = async (name: string, email: string, password: string, title?: string, bio?: string) => {
+  const register = async (name: string, email: string, password: string, title?: string) => {
     setIsLoading(true);
     try {
       await api.post('/academics/register', {
         name,
         email,
         password,
-        title,
-        bio
+        title
       });
       
       // Başarılı olursa login sayfasına yönlendirme veya otomatik giriş yapılabilir
@@ -142,7 +156,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, login, register, logout, isLoading, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

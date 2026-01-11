@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
 import driver from '@/lib/neo4j';
 import { Session } from 'neo4j-driver';
-import jwt from 'jsonwebtoken';
 
-const ACCESS_TOKEN_SECRET = process.env.JWT_SECRET || 'access_secret';
 const urlRegex = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/i;
 
 // Admin Create or Update Institution
@@ -21,21 +19,13 @@ export async function POST(req: Request) {
   let session: Session | null = null;
 
   try {
-    // ADMIN AUTH CHECK
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ message: 'Unauthorized.' }, { status: 401 });
-    }
+    // Auth handled by Middleware
+    const userId = req.headers.get('x-user-id');
+    const role = req.headers.get('x-user-role');
+    const decoded = { userId, role };
 
-    const token = authHeader.split(' ')[1];
-    
-    try {
-      const decoded: any = jwt.verify(token, ACCESS_TOKEN_SECRET);
-      if (decoded.role !== 'ADMIN') {
-        return NextResponse.json({ message: 'Forbidden. Admin access only.' }, { status: 403 });
-      }
-    } catch (err) {
-      return NextResponse.json({ message: 'Invalid token.' }, { status: 401 });
+    if (decoded.role !== 'ADMIN') {
+      return NextResponse.json({ message: 'Forbidden. Admin access only.' }, { status: 403 });
     }
 
     // GET REQUEST BODY

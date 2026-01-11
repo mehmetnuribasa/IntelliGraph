@@ -3,7 +3,6 @@ import driver from '@/lib/neo4j';
 import neo4j, { Session } from 'neo4j-driver';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { v4 as uuidv4 } from 'uuid';
-import jwt from 'jsonwebtoken';
 
 /**
  * @api {get} /api/projects
@@ -19,8 +18,7 @@ export async function GET() {
       `MATCH (p:Project)
        OPTIONAL MATCH (p)<-[:IS_AUTHOR_OF]-(a:Academic) 
        RETURN p, collect(a.name) as authorNames, collect(a.userId) as authorIds
-       ORDER BY p.createdAt DESC 
-       LIMIT 20`
+       ORDER BY p.createdAt DESC`
     );
 
     const projects = result.records.map((record) => {
@@ -68,8 +66,6 @@ export async function GET() {
  */
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const ACCESS_TOKEN_SECRET = process.env.JWT_SECRET || 'access_secret';
-
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY || '');
 const embeddingModel = genAI.getGenerativeModel({ model: "text-embedding-004" }); // Selecting embedding model. We choose text-embedding-004 for best performance.
 
@@ -77,20 +73,12 @@ export async function POST(req: Request) {
   let session: Session | null = null;
 
   try {
-    // Verifying the Access Token from Authorization Header
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ message: 'Unauthorized access. Token required.' }, { status: 401 });
-    }
-
-    const token = authHeader.split(' ')[1];
-    let decodedUser: any;
-
-    try {
-      decodedUser = jwt.verify(token, ACCESS_TOKEN_SECRET);
-    } catch (err) {
-      return NextResponse.json({ message: 'Invalid or expired token.' }, { status: 401 });
-    }
+    // Auth handled by Middleware
+    const userId = req.headers.get('x-user-id');
+    const role = req.headers.get('x-user-role');
+    
+    // Create a mock user object to maintain compatibility with existing logic
+    const decodedUser = { userId, role };
 
 
     // INPUT VALIDATION

@@ -3,10 +3,8 @@ import driver from '@/lib/neo4j';
 import { Session } from 'neo4j-driver';
 
 import neo4j from 'neo4j-driver';
-import jwt from 'jsonwebtoken';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const ACCESS_TOKEN_SECRET = process.env.JWT_SECRET || 'access_secret';
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY || '');
 const embeddingModel = genAI.getGenerativeModel({ model: "text-embedding-004" });
@@ -70,19 +68,10 @@ export async function PUT(
   const { id } = await params;
 
   try {
-    // Auth Check
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-    }
-
-    const token = authHeader.split(' ')[1];
-    let decodedUser: any;
-    try {
-      decodedUser = jwt.verify(token, ACCESS_TOKEN_SECRET);
-    } catch (err) {
-      return NextResponse.json({ message: 'Invalid token' }, { status: 401 });
-    }
+    // Auth handled by Middleware
+    const userId = req.headers.get('x-user-id');
+    const role = req.headers.get('x-user-role');
+    const decodedUser = { userId, role };
 
     // Authorization check
     if (decodedUser.role !== 'FUNDING_MANAGER') {
@@ -98,12 +87,12 @@ export async function PUT(
 
     const errors: Record<string, string[]> = {};
 
-    if (!title || typeof title !== 'string' || title.length < 5) {
-      errors.title = ['Title must be at least 5 characters.'];
+    if (!title || typeof title !== 'string' || title.length < 3) {
+      errors.title = ['Title must be at least 3 characters.'];
     }
 
-    if (!description || typeof description !== 'string' || description.length < 20) {
-      errors.description = ['Description must be at least 20 characters.'];
+    if (!description || typeof description !== 'string' || description.length < 10) {
+      errors.description = ['Description must be at least 10 characters.'];
     }
 
     if (!deadline || isNaN(Date.parse(deadline))) {
@@ -218,26 +207,41 @@ export async function DELETE(
   let session: Session | null = null;
 
   try {
+    // Auth handled by Middleware
+    const role = request.headers.get('x-user-role');
+    const userId = request.headers.get('x-user-id');
+
+    // AUTHORIZATION CHECK
+    if (role !== 'FUNDING_MANAGER') {
+        return NextResponse.json(
+            { message: 'Forbidden. Only Funding Managers can delete calls.' },
+            { status: 403 }
+        );
+    }
+
     session = driver.session();
 
-    // Check if the call exists
-    const checkResult = await session.run(
-      `MATCH (c:Call {callId: $id}) RETURN c`,
-      { id }
+    // Delete query (Only if user created the call)
+    const result = await session.run(
+      `
+      MATCH (u:Academic {userId: $userId})-[:CREATED_CALL]->(c:Call {callId: $callId})
+      DETACH DELETE c
+      RETURN count(c) as deletedCount
+      `,
+      {
+        userId,
+        callId: id
+      }
     );
 
-    if (checkResult.records.length === 0) {
+    const deletedCount = result.records[0].get('deletedCount').toNumber();
+
+    if (deletedCount === 0) {
       return NextResponse.json(
-        { message: 'Funding call not found.' },
+        { message: 'Funding call not found or you are not authorized to delete it.' },
         { status: 404 }
       );
     }
-
-    // Delete the call and its relationships
-    await session.run(
-      `MATCH (c:Call {callId: $id}) DETACH DELETE c`,
-      { id }
-    );
 
     return NextResponse.json(
       { message: 'Funding call deleted successfully.' },

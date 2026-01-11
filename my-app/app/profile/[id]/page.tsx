@@ -16,39 +16,54 @@ export default function ProfilePage() {
   const [fundingCalls, setFundingCalls] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Delete Modal State
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteType, setDeleteType] = useState<'project' | 'call' | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+  const [itemTitleToDelete, setItemTitleToDelete] = useState<string | null>(null);
+
   // Helper to remove HTML tags
   const stripHtml = (html: string) => {
     if (!html) return '';
     return html.replace(/<[^>]*>?/gm, '');
   };
 
-  // Delete project handler
-  const handleDeleteProject = async (projectId: string, projectTitle: string) => {
-    if (!confirm(`Are you sure you want to delete "${projectTitle}"? This action cannot be undone.`)) {
-      return;
-    }
-    
-    try {
-      await api.delete(`/projects/${projectId}`);
-      setProjects(prev => prev.filter(p => (p.projectId || p.id) !== projectId));
-    } catch (error: any) {
-      console.error('Delete project error:', error);
-      alert(error.response?.data?.message || 'Failed to delete project');
-    }
+  // Open delete modal for project
+  const handleDeleteProject = (projectId: string, projectTitle: string) => {
+      setItemToDelete(projectId);
+      setItemTitleToDelete(projectTitle);
+      setDeleteType('project');
+      setDeleteModalOpen(true);
   };
 
-  // Delete funding call handler
-  const handleDeleteCall = async (callId: string, callTitle: string) => {
-    if (!confirm(`Are you sure you want to delete "${callTitle}"? This action cannot be undone.`)) {
-      return;
-    }
-    
+  // Open delete modal for call
+  const handleDeleteCall = (callId: string, callTitle: string) => {
+      setItemToDelete(callId);
+      setItemTitleToDelete(callTitle);
+      setDeleteType('call');
+      setDeleteModalOpen(true);
+  };
+
+  // Confirm delete action
+  const confirmDelete = async () => {
+    if (!itemToDelete || !deleteType) return;
+
     try {
-      await api.delete(`/calls/${callId}`);
-      setFundingCalls(prev => prev.filter(c => c.id !== callId));
+      if (deleteType === 'project') {
+        await api.delete(`/projects/${itemToDelete}`);
+        setProjects(prev => prev.filter(p => (p.projectId || p.id) !== itemToDelete));
+      } else if (deleteType === 'call') {
+        await api.delete(`/calls/${itemToDelete}`);
+        setFundingCalls(prev => prev.filter(c => c.id !== itemToDelete));
+      }
     } catch (error: any) {
-      console.error('Delete call error:', error);
-      alert(error.response?.data?.message || 'Failed to delete funding call');
+      console.error(`Delete ${deleteType} error:`, error);
+      alert(error.response?.data?.message || `Failed to delete ${deleteType}`);
+    } finally {
+        setDeleteModalOpen(false);
+        setItemToDelete(null);
+        setItemTitleToDelete(null);
+        setDeleteType(null);
     }
   };
 
@@ -172,14 +187,6 @@ export default function ProfilePage() {
                   </svg>
                   <span>{profile.email}</span>
                 </div>
-                {profile.id && (
-                  <div className="flex items-center space-x-3 text-gray-600 dark:text-gray-300">
-                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
-                    </svg>
-                    <span>ID: {profile.id}</span>
-                  </div>
-                )}
               </div>
             </div>
 
@@ -405,6 +412,44 @@ export default function ProfilePage() {
           </div>
         </div>
       </main>
+
+      {/* --- DELETE CONFIRMATION MODAL --- */}
+      {deleteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 transform transition-all scale-100">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/30 mb-4">
+                <svg className="h-6 w-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
+                Delete {deleteType === 'project' ? 'Project' : 'Funding Call'}?
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-2 font-medium">
+                "{itemTitleToDelete}"
+              </p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                Are you sure you want to delete this? This action cannot be undone.
+              </p>
+              <div className="flex justify-center space-x-3">
+                <button
+                  onClick={() => setDeleteModalOpen(false)}
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg font-medium transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors shadow-lg shadow-red-500/30"
+                >
+                  Yes, Delete It
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
