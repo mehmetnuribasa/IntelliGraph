@@ -52,9 +52,10 @@ export default function RegisterPage() {
     try {
       // Register with name, email, password, title.
       await register(name, email, password, title);
-      router.push('/'); // Redirect to home on success
+      router.push('/login'); // Redirect to login on success
     } catch (err: any) {
-      setError(err.message || 'Registration failed. Please check your information.');
+      const errorMessage = err.response?.data?.message || err.message || 'Registration failed. Please check your information.';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
