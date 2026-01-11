@@ -50,8 +50,8 @@ export default function RegisterPage() {
     }
     
     try {
-      // Register with name, email, password, title. Bio is left empty for now.
-      await register(name, email, password, title, '');
+      // Register with name, email, password, title.
+      await register(name, email, password, title);
       router.push('/'); // Redirect to home on success
     } catch (err: any) {
       setError(err.message || 'Registration failed. Please check your information.');

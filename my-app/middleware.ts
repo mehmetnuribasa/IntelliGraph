@@ -19,6 +19,9 @@ export async function middleware(req: NextRequest) {
   // We allow GET but block POST/DELETE/ETC unless authenticated
   const isPublicGetRoute = (pathname: string, method: string) => {
     if (method !== 'GET') return false;
+
+    // Explicitly exclude /api/academics/profile from public routes as it requires auth
+    if (pathname === '/api/academics/profile') return false;
     
     // Allow listing endpoints
     if (pathname === '/api/projects' || pathname === '/api/calls' || pathname === '/api/academics') return true;

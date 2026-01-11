@@ -31,8 +31,9 @@ export async function DELETE(req: Request) {
     // - User's relationships (IS_AUTHOR_OF, REPRESENTS, CREATED_CALL, HAS_SESSION)
     const result = await session.run(
       `MATCH (a:Academic {userId: $userId})
+       WITH a, a.userId AS deletedId
        DETACH DELETE a
-       RETURN a.userId AS deletedId`,
+       RETURN deletedId`,
       { userId: decodedUser.userId }
     );
 

@@ -24,7 +24,7 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json();
-    const { name, email, password, title, bio } = body;
+    const { name, email, password, title } = body;
 
     // Input Validation
     const errors: Record<string, string[]> = {};
@@ -88,9 +88,8 @@ export async function POST(req: Request) {
     const createdAt = new Date().toISOString();
 
     // An object for optional fields
-    const optionalProps: { title?: string; bio?: string } = {};
+    const optionalProps: { title?: string } = {};
     if (title) optionalProps.title = title;
-    if (bio) optionalProps.bio = bio;
 
     // Writing Data to Neo4j (CREATE)
     // The 'SET a += $optionalProps' query only adds fields that exist in the optionalProps object.
@@ -106,7 +105,7 @@ export async function POST(req: Request) {
           createdAt: datetime($createdAt)
       }) 
       SET a += $optionalProps
-      RETURN a.userId, a.email, a.name, a.role, a.title, a.bio, a.createdAt`,
+      RETURN a.userId, a.email, a.name, a.role, a.title, a.createdAt`,
       {
         userId,
         email: email.toLowerCase(),

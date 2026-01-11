@@ -23,7 +23,9 @@ export default function LoginPage() {
       await login(email, password);
       router.push('/'); // Redirect to home on success
     } catch (err: any) {
-      setError(err.message || 'Login failed. Please check your credentials.');
+      // Prioritize backend error message
+      const errorMessage = err.response?.data?.message || err.message || 'Login failed. Please check your credentials.';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
