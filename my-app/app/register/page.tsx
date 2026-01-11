@@ -14,8 +14,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [role, setRole] = useState<'academic' | 'institution'>('academic');
-  const [institution, setInstitution] = useState('');
+  const [title, setTitle] = useState(''); // Added title for academic title
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -26,7 +25,7 @@ export default function RegisterPage() {
 
     // Client-side validation
     if (name.length < 2) {
-      setError(role === 'academic' ? 'Name must be at least 2 characters long' : 'Organization name must be at least 2 characters long');
+      setError('Name must be at least 2 characters long');
       setIsLoading(false);
       return;
     }
@@ -50,16 +49,9 @@ export default function RegisterPage() {
       return;
     }
     
-    if (role === 'academic' && !institution.trim()) {
-      setError('Institution is required for academic accounts');
-      setIsLoading(false);
-      return;
-    }
-
     try {
-      // For institutions, use name as institution, for academics use separate institution field
-      const institutionName = role === 'institution' ? name : institution;
-      await register(name, email, password, role, institutionName);
+      // Register with name, email, password, title. Bio is left empty for now.
+      await register(name, email, password, title, '');
       router.push('/'); // Redirect to home on success
     } catch (err: any) {
       setError(err.message || 'Registration failed. Please check your information.');
@@ -95,16 +87,38 @@ export default function RegisterPage() {
             <div className="space-y-5">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Account Type
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g., John Smith"
+                  className="block w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200 ease-in-out sm:text-sm"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Academic Title (Optional)
                 </label>
                 <div className="relative">
                   <select
-                    value={role}
-                    onChange={(e) => setRole(e.target.value as 'academic' | 'institution')}
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
                     className="block w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none transition-colors duration-200 ease-in-out sm:text-sm"
                   >
-                    <option value="academic">Academic/Researcher</option>
-                    <option value="institution">Institution/Funding Body</option>
+                    <option value="">Select a title...</option>
+                    <option value="Prof. Dr.">Prof. Dr.</option>
+                    <option value="Assoc. Prof. Dr.">Assoc. Prof. Dr.</option>
+                    <option value="Asst. Prof. Dr.">Asst. Prof. Dr.</option>
+                    <option value="Research Assistant">Research Assistant</option>
+                    <option value="Lecturer">Lecturer</option>
+                    <option value="PhD Student">PhD Student</option>
+                    <option value="Master Student">Master Student</option>
+                    <option value="Undergraduate Student">Undergraduate Student</option>
+                    <option value="Other">Other</option>
                   </select>
                   <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
                     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -112,20 +126,6 @@ export default function RegisterPage() {
                     </svg>
                   </div>
                 </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  {role === 'academic' ? 'Full Name' : 'Organization Name'}
-                </label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder={role === 'academic' ? 'e.g., Dr. John Smith' : 'e.g., TÜBİTAK, ITU BAP Office'}
-                  className="block w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200 ease-in-out sm:text-sm"
-                  required
-                />
               </div>
 
               <div>
@@ -172,22 +172,6 @@ export default function RegisterPage() {
                   required
                 />
               </div>
-
-              {role === 'academic' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Institution/University
-                  </label>
-                  <input
-                    type="text"
-                    value={institution}
-                    onChange={(e) => setInstitution(e.target.value)}
-                    placeholder="e.g., Gebze Technical University"
-                    className="block w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200 ease-in-out sm:text-sm"
-                    required
-                  />
-                </div>
-              )}
             </div>
 
             <button

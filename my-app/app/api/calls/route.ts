@@ -3,10 +3,8 @@ import driver from '@/lib/neo4j';
 import neo4j, { Session } from 'neo4j-driver';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { v4 as uuidv4 } from 'uuid';
-import jwt from 'jsonwebtoken';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const ACCESS_TOKEN_SECRET = process.env.JWT_SECRET || 'access_secret';
 
 // Initialize Gemini AI Client
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY || '');
@@ -37,7 +35,6 @@ export async function GET() {
              u.name AS authorName,
              u.userId AS authorId
       ORDER BY c.createdAt DESC
-      LIMIT 20
       `
     );
 
@@ -81,20 +78,10 @@ export async function POST(req: Request) {
   let session: Session | null = null;
 
   try {
-    // AUTHENTICATION (verify token)
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ message: 'Unauthorized.' }, { status: 401 });
-    }
-
-    const token = authHeader.split(' ')[1];
-    let decodedUser: any;
-
-    try {
-      decodedUser = jwt.verify(token, ACCESS_TOKEN_SECRET);
-    } catch (err) {
-      return NextResponse.json({ message: 'Invalid token.' }, { status: 401 });
-    }
+    // Auth handled by Middleware
+    const userId = req.headers.get('x-user-id');
+    const role = req.headers.get('x-user-role');
+    const decodedUser = { userId, role };
 
     // AUTHORIZATION (check role is FUNDING_MANAGER)
     if (decodedUser.role !== 'FUNDING_MANAGER') {
@@ -110,12 +97,12 @@ export async function POST(req: Request) {
 
     const errors: Record<string, string[]> = {};
 
-    if (!title || typeof title !== 'string' || title.length < 5) {
-        errors.title = ['Title must be at least 5 characters.'];
+    if (!title || typeof title !== 'string' || title.length < 3) {
+        errors.title = ['Title must be at least 3 characters.'];
     }
 
-    if (!description || typeof description !== 'string' || description.length < 20) {
-        errors.description = ['Description must be at least 20 characters (for AI analysis).'];
+    if (!description || typeof description !== 'string' || description.length < 10) {
+        errors.description = ['Description must be at least 10 characters (for AI analysis).'];
     }
 
     if (!deadline || isNaN(Date.parse(deadline))) {

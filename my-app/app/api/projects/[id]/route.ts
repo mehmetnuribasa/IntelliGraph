@@ -1,12 +1,9 @@
 import { NextResponse } from 'next/server';
 import driver from '@/lib/neo4j';
 import { Session } from 'neo4j-driver';
-import jwt from 'jsonwebtoken';
 
 import neo4j from 'neo4j-driver';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-
-const ACCESS_TOKEN_SECRET = process.env.JWT_SECRET || 'access_secret';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY || '');
@@ -71,19 +68,10 @@ export async function PUT(
   const { id } = await params;
 
   try {
-    // Auth Check
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-    }
-
-    const token = authHeader.split(' ')[1];
-    let decodedUser: any;
-    try {
-      decodedUser = jwt.verify(token, ACCESS_TOKEN_SECRET);
-    } catch (err) {
-      return NextResponse.json({ message: 'Invalid token' }, { status: 401 });
-    }
+    // Auth handled by Middleware
+    const userId = req.headers.get('x-user-id');
+    const role = req.headers.get('x-user-role');
+    const decodedUser = { userId, role };
 
     // INPUT VALIDATION
     const body = await req.json();
@@ -231,19 +219,10 @@ export async function DELETE(
   const { id } = await params;
 
   try {
-    // Auth Check
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-    }
-
-    const token = authHeader.split(' ')[1];
-    let decodedUser: any;
-    try {
-      decodedUser = jwt.verify(token, ACCESS_TOKEN_SECRET);
-    } catch (err) {
-      return NextResponse.json({ message: 'Invalid token' }, { status: 401 });
-    }
+    // Auth handled by Middleware
+    const userId = req.headers.get('x-user-id');
+    const role = req.headers.get('x-user-role');
+    const decodedUser = { userId, role };
 
     session = driver.session();
 

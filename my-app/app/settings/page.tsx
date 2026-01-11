@@ -74,6 +74,12 @@ export default function SettingsPage() {
     setLoading(true);
     setMessage({ type: '', text: '' });
 
+    if (passwordForm.currentPassword === passwordForm.newPassword) {
+      setMessage({ type: 'error', text: 'New password cannot be the same as the current password.' });
+      setLoading(false);
+      return;
+    }
+
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
       setMessage({ type: 'error', text: 'New passwords do not match.' });
       setLoading(false);
@@ -98,7 +104,7 @@ export default function SettingsPage() {
     }
 
     try {
-      await api.put('/auth/change-password', {
+      await api.put('/academics/password', {
         currentPassword: passwordForm.currentPassword,
         newPassword: passwordForm.newPassword,
       });

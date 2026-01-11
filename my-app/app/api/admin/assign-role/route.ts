@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
 import driver from '@/lib/neo4j';
 import { Session } from 'neo4j-driver';
-import jwt from 'jsonwebtoken';
 
-const ACCESS_TOKEN_SECRET = process.env.JWT_SECRET || 'access_secret';
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const urlRegex = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/i;
 
@@ -22,17 +20,12 @@ export async function POST(req: Request) {
   let session: Session | null = null;
 
   try {
-    // Verifying Admin Access Token
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ message: 'Unauthorized.' }, { status: 401 });
-    }
-    const token = authHeader.split(' ')[1];
-    let decodedUser: any;
-    try {
-      decodedUser = jwt.verify(token, ACCESS_TOKEN_SECRET);
-      if (decodedUser.role !== 'ADMIN') throw new Error();
-    } catch (err) {
+    // Auth handled by Middleware
+    const userId = req.headers.get('x-user-id');
+    const role = req.headers.get('x-user-role');
+    const decodedUser = { userId, role };
+
+    if (decodedUser.role !== 'ADMIN') {
       return NextResponse.json({ message: 'Forbidden. Admin only.' }, { status: 403 });
     }
 

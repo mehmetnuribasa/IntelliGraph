@@ -2,9 +2,6 @@ import { NextResponse } from 'next/server';
 import driver from '@/lib/neo4j';
 import { Session } from 'neo4j-driver';
 import { compare, hash } from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-
-const ACCESS_TOKEN_SECRET = process.env.JWT_SECRET || 'access_secret';
 
 /**
  * @api {put} /api/academics/password
@@ -15,20 +12,10 @@ export async function PUT(req: Request) {
   let session: Session | null = null;
 
   try {
-    // Authentication
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ message: 'Unauthorized. Token required.' }, { status: 401 });
-    }
-
-    const token = authHeader.split(' ')[1];
-    let decodedUser: any;
-
-    try {
-      decodedUser = jwt.verify(token, ACCESS_TOKEN_SECRET);
-    } catch (err) {
-      return NextResponse.json({ message: 'Invalid or expired token.' }, { status: 401 });
-    }
+    // Auth handled by Middleware
+    const userId = req.headers.get('x-user-id');
+    const role = req.headers.get('x-user-role');
+    const decodedUser = { userId, role };
 
     // Input validation
     const body = await req.json();
@@ -43,8 +30,13 @@ export async function PUT(req: Request) {
     if (!newPassword || typeof newPassword !== 'string') {
       errors.newPassword = ['New password is required.'];
     } else {
+      if (currentPassword === newPassword) {
+         errors.newPassword = ['New password cannot be the same as the current password.'];
+      }
+
       if (newPassword.length < 8) {
-        errors.newPassword = ['Password must be at least 8 characters long.'];
+        if (!errors.newPassword) errors.newPassword = [];
+        errors.newPassword.push('Password must be at least 8 characters long.');
       }
 
       const complexityRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[\W_]).+$/;
